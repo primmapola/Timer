@@ -1,0 +1,43 @@
+{
+  "configurations" : [
+    {
+      "id" : "D4E5F6A7-B8C9-4AD1-E2F3-A4B5C6D7E8F9",
+      "name" : "Performance Configuration",
+      "options" : {
+        "maximumTestExecutionTimeAllowance" : 120,
+        "testTimeoutsEnabled" : true
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Timer.xcodeproj",
+      "identifier" : "F6CCDDD52F12B46D00C28CDF",
+      "name" : "Timer"
+    }
+  },
+  "testTargets" : [
+    {
+      "selectedTests" : [
+        "StateTransitionTests\/testFullWorkoutCycle()",
+        "StateTransitionTests\/testComplexStateTransitions()",
+        "BoxingTimerModelTests\/testMultipleRoundsConfiguration()"
+      ],
+      "target" : {
+        "containerPath" : "container:Timer.xcodeproj",
+        "identifier" : "F6CCDDFD2F12B46F00C28CDF",
+        "name" : "TimerTests"
+      }
+    },
+    {
+      "enabled" : false,
+      "target" : {
+        "containerPath" : "container:Timer.xcodeproj",
+        "identifier" : "F6CCDE072F12B46F00C28CDF",
+        "name" : "TimerUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

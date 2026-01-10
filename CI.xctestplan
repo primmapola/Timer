@@ -1,0 +1,56 @@
+{
+  "configurations" : [
+    {
+      "id" : "B2C3D4E5-F6A7-48B9-C0D1-E2F3A4B5C6D7",
+      "name" : "CI Configuration",
+      "options" : {
+        "codeCoverage" : {
+          "targets" : [
+            {
+              "containerPath" : "container:Timer.xcodeproj",
+              "identifier" : "F6CCDDD52F12B46D00C28CDF",
+              "name" : "Timer"
+            }
+          ]
+        },
+        "maximumTestExecutionTimeAllowance" : 60,
+        "testTimeoutsEnabled" : true,
+        "threadSanitizerEnabled" : true
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : true,
+    "codeCoverageTargets" : [
+      {
+        "containerPath" : "container:Timer.xcodeproj",
+        "identifier" : "F6CCDDD52F12B46D00C28CDF",
+        "name" : "Timer"
+      }
+    ],
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Timer.xcodeproj",
+      "identifier" : "F6CCDDD52F12B46D00C28CDF",
+      "name" : "Timer"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Timer.xcodeproj",
+        "identifier" : "F6CCDDFD2F12B46F00C28CDF",
+        "name" : "TimerTests"
+      }
+    },
+    {
+      "enabled" : false,
+      "target" : {
+        "containerPath" : "container:Timer.xcodeproj",
+        "identifier" : "F6CCDE072F12B46F00C28CDF",
+        "name" : "TimerUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

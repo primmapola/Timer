@@ -1,0 +1,48 @@
+{
+  "configurations" : [
+    {
+      "id" : "C3D4E5F6-A7B8-49C0-D1E2-F3A4B5C6D7E8",
+      "name" : "Smoke Tests Configuration",
+      "options" : {
+        "maximumTestExecutionTimeAllowance" : 30,
+        "testTimeoutsEnabled" : true
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Timer.xcodeproj",
+      "identifier" : "F6CCDDD52F12B46D00C28CDF",
+      "name" : "Timer"
+    }
+  },
+  "testTargets" : [
+    {
+      "selectedTags" : {
+        "includeXCTests" : true
+      },
+      "skippedTests" : [
+        "StatusDisplayTests",
+        "TimeFormatterTests"
+      ],
+      "target" : {
+        "containerPath" : "container:Timer.xcodeproj",
+        "identifier" : "F6CCDDFD2F12B46F00C28CDF",
+        "name" : "TimerTests"
+      }
+    },
+    {
+      "enabled" : false,
+      "selectedTags" : {
+        "includeXCTests" : true
+      },
+      "target" : {
+        "containerPath" : "container:Timer.xcodeproj",
+        "identifier" : "F6CCDE072F12B46F00C28CDF",
+        "name" : "TimerUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

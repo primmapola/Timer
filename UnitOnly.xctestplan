@@ -1,0 +1,32 @@
+{
+  "configurations" : [
+    {
+      "id" : "74138F94-5B45-43BA-B126-1628E845D59E",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "enabled" : false,
+      "target" : {
+        "containerPath" : "container:Timer.xcodeproj",
+        "identifier" : "F6CCDE072F12B46F00C28CDF",
+        "name" : "TimerUITests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Timer.xcodeproj",
+        "identifier" : "F6CCDDFD2F12B46F00C28CDF",
+        "name" : "TimerTests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -1,0 +1,45 @@
+{
+  "configurations" : [
+    {
+      "id" : "A1B2C3D4-E5F6-47A8-B9C0-D1E2F3A4B5C6",
+      "name" : "All Tests Configuration",
+      "options" : {
+        "codeCoverage" : {
+          "targets" : [
+            {
+              "containerPath" : "container:Timer.xcodeproj",
+              "identifier" : "F6CCDDD52F12B46D00C28CDF",
+              "name" : "Timer"
+            }
+          ]
+        },
+        "testTimeoutsEnabled" : true
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Timer.xcodeproj",
+      "identifier" : "F6CCDDD52F12B46D00C28CDF",
+      "name" : "Timer"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Timer.xcodeproj",
+        "identifier" : "F6CCDDFD2F12B46F00C28CDF",
+        "name" : "TimerTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Timer.xcodeproj",
+        "identifier" : "F6CCDE072F12B46F00C28CDF",
+        "name" : "TimerUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
