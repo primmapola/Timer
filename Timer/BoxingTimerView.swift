@@ -11,11 +11,13 @@ struct BoxingTimerView: View {
     @State private var model = BoxingTimerModel()
     @State private var isSettingsPresented = false
     @State private var isPresetsPresented = false
+    @State private var isWarningPulsing = false
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 40) {
+            VStack(spacing: 32) {
                 statusSection
+                phaseBadge
                 timerDisplay
                 roundCounter
                 Spacer()
@@ -26,6 +28,17 @@ struct BoxingTimerView: View {
                 backgroundGradient
             }
             .animation(.easeInOut(duration: 0.3), value: model.timerState)
+            .onChange(of: model.isInWarningTime) { _, newValue in
+                if newValue {
+                    withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                        isWarningPulsing = true
+                    }
+                } else {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isWarningPulsing = false
+                    }
+                }
+            }
             .navigationTitle(model.currentPresetName)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -61,11 +74,23 @@ struct BoxingTimerView: View {
         Group {
             switch model.timerState {
             case .running(.round), .paused(.round):
-                Color.red.opacity(0.1)
+                LinearGradient(
+                    colors: [Color.red.opacity(0.25), Color.red.opacity(0.05), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
             case .running(.rest), .paused(.rest):
-                Color.green.opacity(0.1)
+                LinearGradient(
+                    colors: [Color.green.opacity(0.25), Color.green.opacity(0.05), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
             case .finished:
-                Color.purple.opacity(0.1)
+                LinearGradient(
+                    colors: [Color.purple.opacity(0.25), Color.purple.opacity(0.05), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
             case .idle:
                 Color.clear
             }
@@ -74,48 +99,147 @@ struct BoxingTimerView: View {
     }
 
     private var statusSection: some View {
-        Text(model.statusText)
-            .font(.title2.weight(.semibold))
-            .foregroundStyle(model.statusColor)
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(.thinMaterial, in: .rect(cornerRadius: 16))
+        HStack(spacing: 12) {
+            Image(systemName: model.phaseIconName)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(model.statusColor)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(model.statusText)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(model.isPaused ? "Пауза" : model.phaseTitle)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(model.statusColor)
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(.thinMaterial, in: .rect(cornerRadius: 16))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Статус")
+        .accessibilityValue("\(model.statusText), \(model.isPaused ? "Пауза" : model.phaseTitle)")
     }
 
     private var timerDisplay: some View {
-        Text(model.formatTime(model.timeRemaining))
-            .font(.system(size: 96, weight: .bold, design: .rounded))
-            .monospacedDigit()
-            .foregroundStyle(model.statusColor)
-            .contentTransition(.numericText())
+        ZStack {
+            timerRing
+
+            VStack(spacing: 8) {
+                Text(model.formatTime(model.timeRemaining))
+                    .font(.system(size: 96, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(model.statusColor)
+                    .contentTransition(.numericText())
+                    .scaleEffect(isWarningPulsing ? 1.05 : 1.0)
+
+                if model.isPaused {
+                    Text("ПАУЗА")
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial, in: .capsule)
+                } else if model.timerState == .finished {
+                    Text("ЗАВЕРШЕНО")
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial, in: .capsule)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Оставшееся время")
+        .accessibilityValue(model.formatTime(model.timeRemaining))
+    }
+
+    private var timerRing: some View {
+        ZStack {
+            Circle()
+                .stroke(.quaternary, lineWidth: 10)
+                .frame(width: 220, height: 220)
+
+            Circle()
+                .trim(from: 0, to: model.phaseProgress)
+                .stroke(
+                    model.statusColor,
+                    style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .frame(width: 220, height: 220)
+                .animation(.easeInOut(duration: 0.3), value: model.phaseProgress)
+        }
+    }
+
+    private var phaseBadge: some View {
+        HStack(spacing: 12) {
+            Label(model.phaseTitle, systemImage: model.phaseIconName)
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(model.statusColor.opacity(0.15), in: .capsule)
+
+            Text("Раунд \(model.currentRound) из \(model.numberOfRounds)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+        }
+        .padding(.horizontal, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Фаза")
+        .accessibilityValue("\(model.phaseTitle), Раунд \(model.currentRound) из \(model.numberOfRounds)")
     }
 
     private var roundCounter: some View {
-        HStack(spacing: 40) {
-            VStack(spacing: 8) {
-                Text("РАУНД")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("\(model.currentRound)")
-                    .font(.system(size: 64, weight: .bold, design: .rounded))
-                    .contentTransition(.numericText())
+        VStack(spacing: 16) {
+            HStack(spacing: 40) {
+                VStack(spacing: 8) {
+                    Text("РАУНД")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(model.currentRound)")
+                        .font(.system(size: 64, weight: .bold, design: .rounded))
+                        .contentTransition(.numericText())
+                }
+
+                Text("/")
+                    .font(.system(size: 48, weight: .ultraLight))
+                    .foregroundStyle(.tertiary)
+
+                VStack(spacing: 8) {
+                    Text("ВСЕГО")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("\(model.numberOfRounds)")
+                        .font(.system(size: 64, weight: .bold, design: .rounded))
+                        .contentTransition(.numericText())
+                }
             }
 
-            Text("/")
-                .font(.system(size: 48, weight: .ultraLight))
-                .foregroundStyle(.tertiary)
-
-            VStack(spacing: 8) {
-                Text("ВСЕГО")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("\(model.numberOfRounds)")
-                    .font(.system(size: 64, weight: .bold, design: .rounded))
-                    .contentTransition(.numericText())
-            }
+            roundProgressDots
         }
         .padding()
         .background(.regularMaterial, in: .rect(cornerRadius: 16))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Счетчик раундов")
+        .accessibilityValue("Раунд \(model.currentRound) из \(model.numberOfRounds)")
+    }
+
+    private var roundProgressDots: some View {
+        HStack(spacing: 6) {
+            ForEach(1...model.numberOfRounds, id: \.self) { round in
+                Circle()
+                    .fill(round <= model.completedRounds ? model.statusColor : Color.secondary.opacity(0.3))
+                    .frame(width: 8, height: 8)
+                    .overlay(
+                        Circle()
+                            .stroke(round == model.currentRound ? model.statusColor : .clear, lineWidth: 1)
+                    )
+            }
+        }
     }
 
     @ViewBuilder
