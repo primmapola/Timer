@@ -27,7 +27,7 @@ struct TimerPhaseBadgeView: View {
                 .padding(.vertical, badgeVerticalPadding)
                 .background(statusColor.opacity(0.15), in: .capsule)
 
-            Text("Раунд \(currentRound) из \(numberOfRounds)")
+            Text(String.localizedStringWithFormat(String(localized: "timer.badge"), currentRound, numberOfRounds))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -35,7 +35,7 @@ struct TimerPhaseBadgeView: View {
         }
         .padding(.horizontal, horizontalPadding)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Фаза")
-        .accessibilityValue("\(phaseTitle), Раунд \(currentRound) из \(numberOfRounds)")
+        .accessibilityLabel("accessibility.phase")
+        .accessibilityValue("\(phaseTitle), \(String.localizedStringWithFormat(String(localized: "accessibility.counter.value"), currentRound, numberOfRounds))")
     }
 }

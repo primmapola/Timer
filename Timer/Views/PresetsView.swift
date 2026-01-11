@@ -16,6 +16,8 @@ struct PresetsView: View {
     @Bindable var model: BoxingTimerModel
     @State private var showingDeleteAlert = false
     @State private var presetToDelete: WorkoutPreset?
+    @State private var showingCreatePresetAlert = false
+    @State private var newPresetName = ""
 
     var body: some View {
         NavigationStack {
@@ -26,56 +28,99 @@ struct PresetsView: View {
                     presetsList
                 }
             }
-            .navigationTitle("Мои тренировки")
+            .navigationTitle("presets.title")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Закрыть") {
+                    Button("button.close") {
                         dismiss()
                     }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showingCreatePresetAlert = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .symbolEffect(.bounce, value: presets.count)
+                }
             }
-            .alert("Удалить тренировку?", isPresented: $showingDeleteAlert, presenting: presetToDelete) { preset in
-                Button("Удалить", role: .destructive) {
+            .alert("alert.delete_preset.title", isPresented: $showingDeleteAlert, presenting: presetToDelete) { preset in
+                Button("alert.delete", role: .destructive) {
                     deletePreset(preset)
                 }
-                Button("Отмена", role: .cancel) {}
+                Button("alert.cancel", role: .cancel) {}
             } message: { preset in
-                Text("Вы уверены, что хотите удалить тренировку \"\(preset.name)\"?")
+                Text(String.localizedStringWithFormat(String(localized: "alert.delete_preset.message"), preset.name))
+            }
+            .alert("alert.create_preset.title", isPresented: $showingCreatePresetAlert) {
+                TextField("alert.create_preset.placeholder", text: $newPresetName)
+                Button("alert.save") {
+                    createNewPreset()
+                }
+                Button("alert.cancel", role: .cancel) {
+                    newPresetName = ""
+                }
+            } message: {
+                Text("alert.create_preset.message")
             }
         }
     }
 
     private var emptyState: some View {
         ContentUnavailableView {
-            Label("Нет сохраненных тренировок", systemImage: "timer")
+            Label("empty_state.title", systemImage: "timer")
         } description: {
-            Text("Создайте первую тренировку в настройках")
+            Text("empty_state.description")
         }
+        .transition(.scale.combined(with: .opacity))
     }
 
     private var presetsList: some View {
         List {
             ForEach(presets) { preset in
-                Button {
+                PresetButton(preset: preset, action: {
                     loadPreset(preset)
-                } label: {
-                    PresetRow(preset: preset)
-                }
+                })
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color.clear)
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.8).combined(with: .opacity).combined(with: .move(edge: .top)),
+                    removal: .scale(scale: 0.8).combined(with: .opacity).combined(with: .move(edge: .trailing))
+                ))
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         presetToDelete = preset
                         showingDeleteAlert = true
                     } label: {
-                        Label("Удалить", systemImage: "trash")
+                        Label("alert.delete", systemImage: "trash")
+                    }
+                }
+                .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                    Button {
+                        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                            duplicatePreset(preset)
+                        }
+                    } label: {
+                        Label("preset.duplicate", systemImage: "doc.on.doc")
+                    }
+                    .tint(.blue)
+
+                    // Показываем кнопку обновления только для текущего загруженного пресета
+                    if model.currentPresetId == preset.id {
+                        Button {
+                            updatePreset(preset)
+                        } label: {
+                            Label("preset.update", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                        .tint(.green)
                     }
                 }
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: presets.count)
     }
 
     private func loadPreset(_ preset: WorkoutPreset) {
@@ -84,7 +129,49 @@ struct PresetsView: View {
     }
 
     private func deletePreset(_ preset: WorkoutPreset) {
-        modelContext.delete(preset)
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
+            modelContext.delete(preset)
+            try? modelContext.save()
+        }
+    }
+
+    private func createNewPreset() {
+        guard !newPresetName.isEmpty else { return }
+
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+            let newPreset = WorkoutPreset(name: newPresetName, from: model)
+            modelContext.insert(newPreset)
+            try? modelContext.save()
+        }
+
+        newPresetName = ""
+    }
+
+    private func duplicatePreset(_ preset: WorkoutPreset) {
+        let duplicateName = String.localizedStringWithFormat(String(localized: "preset.duplicate_name"), preset.name)
+
+        let duplicatePreset = WorkoutPreset(
+            name: duplicateName,
+            roundDuration: preset.roundDuration,
+            restDuration: preset.restDuration,
+            numberOfRounds: preset.numberOfRounds,
+            roundWarningTime: preset.roundWarningTime,
+            restWarningTime: preset.restWarningTime,
+            roundStartSound: preset.roundStartSound,
+            restStartSound: preset.restStartSound,
+            roundWarningSound: preset.roundWarningSound,
+            restWarningSound: preset.restWarningSound,
+            workoutCompleteSound: preset.workoutCompleteSound
+        )
+        // Copy rounds configuration
+        duplicatePreset.roundsConfiguration = preset.roundsConfiguration
+
+        modelContext.insert(duplicatePreset)
+        try? modelContext.save()
+    }
+
+    private func updatePreset(_ preset: WorkoutPreset) {
+        preset.update(from: model)
         try? modelContext.save()
     }
 }
@@ -93,12 +180,16 @@ struct PresetRow: View {
     let preset: WorkoutPreset
 
     private var totalDuration: TimeInterval {
-        Double(preset.numberOfRounds) * preset.roundDuration +
-        Double(max(0, preset.numberOfRounds - 1)) * preset.restDuration
+        preset.roundsConfiguration.totalDuration
     }
 
     private var gradientColors: [Color] {
-        [Color.blue.opacity(0.6), Color.purple.opacity(0.6)]
+        switch preset.roundsConfiguration {
+        case .uniform:
+            return [Color.blue.opacity(0.6), Color.purple.opacity(0.6)]
+        case .individual:
+            return [Color.orange.opacity(0.6), Color.pink.opacity(0.6)]
+        }
     }
 
     var body: some View {
@@ -111,7 +202,7 @@ struct PresetRow: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(.white)
 
-                    Text("Всего: \(formatTotalTime(totalDuration))")
+                    Text(String.localizedStringWithFormat(String(localized: "preset.row.total"), formatTotalTime(totalDuration)))
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.9))
                 }
@@ -120,11 +211,11 @@ struct PresetRow: View {
 
                 // Бейдж с количеством раундов
                 VStack(spacing: 2) {
-                    Text("\(preset.numberOfRounds)")
+                    Text("\(preset.roundsConfiguration.numberOfRounds)")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
-                    Text("раундов")
+                    Text("preset.row.rounds")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.8))
                 }
@@ -144,41 +235,13 @@ struct PresetRow: View {
                 )
             )
 
-            // Детали тренировки
-            HStack(spacing: 0) {
-                // Раунд
-                VStack(spacing: 6) {
-                    Image(systemName: "timer")
-                        .font(.title3)
-                        .foregroundStyle(.green)
-                    Text("Раунд")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(formatTime(preset.roundDuration))
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                }
-                .frame(maxWidth: .infinity)
-
-                Divider()
-                    .frame(height: 40)
-
-                // Отдых
-                VStack(spacing: 6) {
-                    Image(systemName: "pause.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(.blue)
-                    Text("Отдых")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(formatTime(preset.restDuration))
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                }
-                .frame(maxWidth: .infinity)
+            // Детали тренировки - разные для uniform и individual
+            switch preset.roundsConfiguration {
+            case .uniform(let roundDuration, let restDuration, _):
+                uniformDetailsView(roundDuration: roundDuration, restDuration: restDuration)
+            case .individual(let rounds):
+                individualDetailsView(rounds: rounds)
             }
-            .padding(.vertical, 16)
-            .background(Color(.systemBackground))
         }
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
@@ -186,6 +249,112 @@ struct PresetRow: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.gray.opacity(0.1), lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private func uniformDetailsView(roundDuration: TimeInterval, restDuration: TimeInterval) -> some View {
+        HStack(spacing: 0) {
+            // Раунд
+            VStack(spacing: 6) {
+                Image(systemName: "timer")
+                    .font(.title3)
+                    .foregroundStyle(.green)
+                Text("preset.detail.round")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(formatTime(roundDuration))
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+            }
+            .frame(maxWidth: .infinity)
+
+            Divider()
+                .frame(height: 40)
+
+            // Отдых
+            VStack(spacing: 6) {
+                Image(systemName: "pause.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.blue)
+                Text("preset.detail.rest")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(formatTime(restDuration))
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.vertical, 16)
+        .background(Color(.systemBackground))
+    }
+
+    @ViewBuilder
+    private func individualDetailsView(rounds: [RoundConfiguration]) -> some View {
+        VStack(spacing: 12) {
+            // Индикатор индивидуальной конфигурации
+            HStack {
+                Image(systemName: "list.bullet.circle.fill")
+                    .foregroundStyle(.orange)
+                Text("preset.detail.individual_rounds")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+
+            // Показываем диапазоны длительности
+            HStack(spacing: 0) {
+                // Диапазон раундов
+                VStack(spacing: 6) {
+                    Image(systemName: "timer")
+                        .font(.title3)
+                        .foregroundStyle(.green)
+                    Text("preset.detail.round")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(formatDurationRange(rounds.map { $0.roundDuration }))
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+
+                Divider()
+                    .frame(height: 40)
+
+                // Диапазон отдыха
+                VStack(spacing: 6) {
+                    Image(systemName: "pause.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.blue)
+                    Text("preset.detail.rest")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(formatDurationRange(rounds.map { $0.restDuration }))
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .padding(.bottom, 16)
+        }
+        .background(Color(.systemBackground))
+    }
+
+    private func formatDurationRange(_ durations: [TimeInterval]) -> String {
+        guard !durations.isEmpty else { return "-" }
+
+        let minDuration = durations.min() ?? 0
+        let maxDuration = durations.max() ?? 0
+
+        if minDuration == maxDuration {
+            return formatTime(minDuration)
+        } else {
+            return "\(formatTime(minDuration)) - \(formatTime(maxDuration))"
+        }
     }
 
     private func formatTime(_ seconds: TimeInterval) -> String {
@@ -208,6 +377,34 @@ struct PresetRow: View {
 
     private func twoDigitString(_ value: Int) -> String {
         value.formatted(.number.precision(.integerLength(2)).grouping(.never))
+    }
+}
+
+// Кнопка пресета с анимацией нажатия
+struct PresetButton: View {
+    let preset: WorkoutPreset
+    let action: () -> Void
+    @State private var isPressed = false
+
+    var body: some View {
+        Button(action: action) {
+            PresetRow(preset: preset)
+        }
+        .buttonStyle(ScaleButtonStyle(isPressed: $isPressed))
+        .scaleEffect(isPressed ? 0.97 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+    }
+}
+
+// Custom button style для обработки нажатия
+struct ScaleButtonStyle: ButtonStyle {
+    @Binding var isPressed: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .onChange(of: configuration.isPressed) { _, newValue in
+                isPressed = newValue
+            }
     }
 }
 
@@ -245,8 +442,32 @@ struct PresetRow: View {
         workoutCompleteSound: .complete
     )
 
+    // Add preset with individual rounds
+    let preset3 = WorkoutPreset(
+        name: "Пирамида",
+        roundDuration: 120,
+        restDuration: 60,
+        numberOfRounds: 5,
+        roundWarningTime: 10,
+        restWarningTime: 5,
+        roundStartSound: .bell,
+        restStartSound: .beep,
+        roundWarningSound: .beep,
+        restWarningSound: .beep,
+        workoutCompleteSound: .complete
+    )
+    // Configure individual rounds with increasing durations
+    preset3.roundsConfiguration = .individual(rounds: [
+        RoundConfiguration(roundDuration: 60, restDuration: 30),
+        RoundConfiguration(roundDuration: 120, restDuration: 45),
+        RoundConfiguration(roundDuration: 180, restDuration: 60),
+        RoundConfiguration(roundDuration: 120, restDuration: 45),
+        RoundConfiguration(roundDuration: 60, restDuration: 30)
+    ])
+
     container.mainContext.insert(preset1)
     container.mainContext.insert(preset2)
+    container.mainContext.insert(preset3)
 
     return PresetsView(model: model)
         .modelContainer(container)

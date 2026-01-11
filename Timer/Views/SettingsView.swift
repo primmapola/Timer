@@ -36,6 +36,9 @@ struct SettingsView: View {
     @State private var expandedRow: SettingRow?
     @State private var showingSavePreset = false
     @State private var presetName = ""
+    @State private var showingIndividualRounds = false
+    @State private var isIndividualMode: Bool
+    @Query private var presets: [WorkoutPreset]
 
     init(model: BoxingTimerModel) {
         self.model = model
@@ -50,6 +53,13 @@ struct SettingsView: View {
 
         _roundWarningSeconds = State(initialValue: Int(model.roundWarningTime))
         _restWarningSeconds = State(initialValue: Int(model.restWarningTime))
+
+        // Определяем режим конфигурации
+        if case .individual = model.roundsConfiguration {
+            _isIndividualMode = State(initialValue: true)
+        } else {
+            _isIndividualMode = State(initialValue: false)
+        }
     }
 
     var body: some View {
@@ -62,7 +72,7 @@ struct SettingsView: View {
                             Image(systemName: "clock.fill")
                                 .foregroundStyle(.blue)
                                 .font(.title3)
-                            Text("Общее время")
+                            Text("section.total_time")
                                 .font(.headline)
                             Spacer()
                             Text(formatTotalWorkoutTime())
@@ -70,27 +80,74 @@ struct SettingsView: View {
                                 .foregroundStyle(.blue)
                         }
 
-                        // Визуальный timeline
-                        HStack(spacing: 4) {
-                            ForEach(0..<model.numberOfRounds, id: \.self) { index in
-                                VStack(spacing: 2) {
-                                    Rectangle()
-                                        .fill(.red.opacity(0.7))
-                                        .frame(height: 20)
+                        // Визуальный timeline с реальным соотношением времени
+                        GeometryReader { geometry in
+                            // Для uniform режима используем актуальные значения из @State переменных
+                            let rounds: [RoundConfiguration] = isIndividualMode
+                                ? model.roundsConfiguration.rounds
+                                : (0..<model.numberOfRounds).map { _ in
+                                    RoundConfiguration(
+                                        roundDuration: TimeInterval(roundMinutes * 60 + roundSeconds),
+                                        restDuration: TimeInterval(restMinutes * 60 + restSeconds)
+                                    )
+                                }
 
-                                    if index < model.numberOfRounds - 1 {
-                                        Rectangle()
-                                            .fill(.green.opacity(0.7))
-                                            .frame(height: 10)
+                            let totalDuration = rounds.reduce(0) { total, round in
+                                total + round.roundDuration + round.restDuration
+                            } - (rounds.last?.restDuration ?? 0)
+                            let availableWidth = geometry.size.width
+
+                            HStack(spacing: 0) {
+                                ForEach(rounds.indices, id: \.self) { index in
+                                    let round = rounds[index]
+
+                                    // Раунд
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [.red.opacity(0.8), .red.opacity(0.6)],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                        )
+                                        .frame(width: (round.roundDuration / totalDuration) * availableWidth)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .strokeBorder(.red.opacity(0.3), lineWidth: 1)
+                                        )
+                                        .shadow(color: .red.opacity(0.3), radius: 2, y: 1)
+
+                                    // Пауза (если не последний раунд)
+                                    if index < rounds.count - 1 {
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [.green.opacity(0.7), .green.opacity(0.5)],
+                                                    startPoint: .top,
+                                                    endPoint: .bottom
+                                                )
+                                            )
+                                            .frame(width: (round.restDuration / totalDuration) * availableWidth)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .strokeBorder(.green.opacity(0.3), lineWidth: 1)
+                                            )
+                                            .shadow(color: .green.opacity(0.2), radius: 2, y: 1)
                                     }
                                 }
                             }
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .frame(height: 32)
 
-                        Text("\(model.numberOfRounds) × (\(formatTime(minutes: roundMinutes, seconds: roundSeconds)) раунд + \(formatTime(minutes: restMinutes, seconds: restSeconds)) отдых)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        if isIndividualMode {
+                            Text("individual_rounds.summary")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text(String(format: String(localized: "%lld × (%@ раунд + %@ отдых)"), model.numberOfRounds, formatTime(minutes: roundMinutes, seconds: roundSeconds), formatTime(minutes: restMinutes, seconds: restSeconds)))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     .padding(.vertical, 8)
                 }
@@ -100,8 +157,8 @@ struct SettingsView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             QuickPresetButton(
-                                title: "3 мин",
-                                subtitle: "1 мин отдых",
+                                title: String(localized: "quick_preset.3min.title"),
+                                subtitle: String(localized: "quick_preset.3min.subtitle"),
                                 icon: "bolt.fill",
                                 color: .orange
                             ) {
@@ -112,8 +169,8 @@ struct SettingsView: View {
                             }
 
                             QuickPresetButton(
-                                title: "5 мин",
-                                subtitle: "1 мин отдых",
+                                title: String(localized: "quick_preset.5min.title"),
+                                subtitle: String(localized: "quick_preset.5min.subtitle"),
                                 icon: "flame.fill",
                                 color: .red
                             ) {
@@ -124,8 +181,8 @@ struct SettingsView: View {
                             }
 
                             QuickPresetButton(
-                                title: "12 мин",
-                                subtitle: "3 мин отдых",
+                                title: String(localized: "quick_preset.12min.title"),
+                                subtitle: String(localized: "quick_preset.12min.subtitle"),
                                 icon: "figure.boxing",
                                 color: .purple
                             ) {
@@ -139,10 +196,70 @@ struct SettingsView: View {
                     }
                     .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
                 } header: {
-                    Text("Быстрые настройки")
+                    Text("section.quick_presets")
                 }
 
                 Section {
+                    // Переключатель режима
+                    Toggle(isOn: Binding(
+                        get: { isIndividualMode },
+                        set: { newValue in
+                            isIndividualMode = newValue
+                            if newValue {
+                                // Переключаемся в индивидуальный режим
+                                let currentRounds = model.roundsConfiguration.rounds
+                                model.roundsConfiguration = .individual(rounds: currentRounds)
+                            } else {
+                                // Переключаемся в единообразный режим
+                                model.roundsConfiguration = .uniform(
+                                    roundDuration: TimeInterval(roundMinutes * 60 + roundSeconds),
+                                    restDuration: TimeInterval(restMinutes * 60 + restSeconds),
+                                    count: model.numberOfRounds
+                                )
+                            }
+                        }
+                    )) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "slider.horizontal.3")
+                                .foregroundStyle(.purple)
+                                .font(.title3)
+                                .frame(width: 28)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("settings.configuration_mode.label")
+                                    .foregroundStyle(.primary)
+                                    .font(.body.weight(.medium))
+                                Text("settings.configuration_mode.description")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .tint(.purple)
+
+                    if isIndividualMode {
+                        Button {
+                            showingIndividualRounds = true
+                        } label: {
+                            HStack {
+                                Text("settings.configure_rounds")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Text(String.localizedStringWithFormat(String(localized: "settings.rounds_count"), model.numberOfRounds))
+                                    .foregroundStyle(.secondary)
+                                    .font(.body)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("settings.configuration_mode.header")
+                }
+
+                if !isIndividualMode {
+                    Section {
                     // Раунд
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -156,10 +273,10 @@ struct SettingsView: View {
                                 .frame(width: 28)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Раунд")
+                                Text("settings.round.label")
                                     .foregroundStyle(.primary)
                                     .font(.body.weight(.medium))
-                                Text("Время активной работы")
+                                Text("settings.round.description")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -194,10 +311,10 @@ struct SettingsView: View {
                                 .frame(width: 28)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Пауза")
+                                Text("settings.pause.label")
                                     .foregroundStyle(.primary)
                                     .font(.body.weight(.medium))
-                                Text("Отдых между раундами")
+                                Text("settings.pause.description")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -232,10 +349,10 @@ struct SettingsView: View {
                                 .frame(width: 28)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Раунды")
+                                Text("settings.rounds.label")
                                     .foregroundStyle(.primary)
                                     .font(.body.weight(.medium))
-                                Text("Количество повторений")
+                                Text("settings.rounds.description")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -262,7 +379,8 @@ struct SettingsView: View {
                     }
 
                 } header: {
-                    Text("Основные параметры")
+                    Text("section.main_settings")
+                }
                 }
 
                 Section {
@@ -279,17 +397,17 @@ struct SettingsView: View {
                                 .frame(width: 28)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Сигнал раунда")
+                                Text("settings.round_warning.label")
                                     .foregroundStyle(.primary)
                                     .font(.body.weight(.medium))
-                                Text("За \(roundWarningSeconds) сек до конца")
+                                Text(String.localizedStringWithFormat(String(localized: "settings.round_warning.description"), roundWarningSeconds))
                                     .font(.caption)
                                     .foregroundStyle(isRoundWarningValid ? Color.secondary : Color.red)
                             }
 
                             Spacer()
 
-                            Text("\(roundWarningSeconds) сек")
+                            Text(String.localizedStringWithFormat(String(localized: "settings.round_warning.display"), roundWarningSeconds))
                                 .foregroundStyle(isRoundWarningValid ? .orange : .red)
                                 .font(.body.bold().monospacedDigit())
 
@@ -304,7 +422,7 @@ struct SettingsView: View {
                     if expandedRow == .roundWarning {
                         Picker("Секунды", selection: $roundWarningSeconds) {
                             ForEach([3, 5, 10, 15, 20, 30], id: \.self) { sec in
-                                Text("\(sec) сек")
+                                Text(String.localizedStringWithFormat(String(localized: "settings.round_warning.picker_option"), sec))
                                     .tag(sec)
                             }
                         }
@@ -327,17 +445,17 @@ struct SettingsView: View {
                                 .frame(width: 28)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Сигнал паузы")
+                                Text("settings.rest_warning.label")
                                     .foregroundStyle(.primary)
                                     .font(.body.weight(.medium))
-                                Text("За \(restWarningSeconds) сек до конца")
+                                Text(String.localizedStringWithFormat(String(localized: "settings.rest_warning.description"), restWarningSeconds))
                                     .font(.caption)
                                     .foregroundStyle(isRestWarningValid ? Color.secondary : Color.red)
                             }
 
                             Spacer()
 
-                            Text("\(restWarningSeconds) сек")
+                            Text(String.localizedStringWithFormat(String(localized: "settings.rest_warning.display"), restWarningSeconds))
                                 .foregroundStyle(isRestWarningValid ? .cyan : .red)
                                 .font(.body.bold().monospacedDigit())
 
@@ -352,7 +470,7 @@ struct SettingsView: View {
                     if expandedRow == .restWarning {
                         Picker("Секунды", selection: $restWarningSeconds) {
                             ForEach([3, 5, 10, 15, 20, 30], id: \.self) { sec in
-                                Text("\(sec) сек")
+                                Text(String.localizedStringWithFormat(String(localized: "settings.rest_warning.picker_option"), sec))
                                     .tag(sec)
                             }
                         }
@@ -362,10 +480,10 @@ struct SettingsView: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }
                 } header: {
-                    Text("Предупреждения")
+                    Text("section.warnings")
                 } footer: {
                     if !isRoundWarningValid || !isRestWarningValid {
-                        Text("⚠️ Время сигнала не может быть больше или равно длительности периода")
+                        Text("settings.warning.duration_invalid")
                             .foregroundStyle(.red)
                     }
                 }
@@ -379,7 +497,7 @@ struct SettingsView: View {
                         }
                     } label: {
                         HStack {
-                            Text("Начало раунда")
+                            Text("settings.sound.round_start")
                                 .foregroundStyle(.primary)
                             Spacer()
                             Text(model.roundStartSound.name)
@@ -406,7 +524,7 @@ struct SettingsView: View {
                         }
                     } label: {
                         HStack {
-                            Text("Начало паузы")
+                            Text("settings.sound.pause_start")
                                 .foregroundStyle(.primary)
                             Spacer()
                             Text(model.restStartSound.name)
@@ -433,7 +551,7 @@ struct SettingsView: View {
                         }
                     } label: {
                         HStack {
-                            Text("Сигнал раунда")
+                            Text("settings.sound.round_warning")
                                 .foregroundStyle(.primary)
                             Spacer()
                             Text(model.roundWarningSound.name)
@@ -460,7 +578,7 @@ struct SettingsView: View {
                         }
                     } label: {
                         HStack {
-                            Text("Сигнал паузы")
+                            Text("settings.sound.pause_warning")
                                 .foregroundStyle(.primary)
                             Spacer()
                             Text(model.restWarningSound.name)
@@ -487,7 +605,7 @@ struct SettingsView: View {
                         }
                     } label: {
                         HStack {
-                            Text("Завершение тренировки")
+                            Text("settings.sound.workout_end")
                                 .foregroundStyle(.primary)
                             Spacer()
                             Text(model.workoutCompleteSound.name)
@@ -507,24 +625,38 @@ struct SettingsView: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }
                 } header: {
-                    Text("Звуки")
+                    Text("section.sounds")
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Параметры")
+            .navigationTitle("settings.title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") {
+                    Button("alert.cancel") {
                         dismiss()
                     }
                 }
 
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showingSavePreset = true
+                    Menu {
+                        Button {
+                            showingSavePreset = true
+                        } label: {
+                            Label("settings.save_as_new_preset", systemImage: "plus.square")
+                        }
+
+                        // Показываем кнопку обновления только если есть активный пресет
+                        if let currentPresetId = model.currentPresetId,
+                           presets.contains(where: { $0.id == currentPresetId }) {
+                            Button {
+                                updateCurrentPreset()
+                            } label: {
+                                Label("settings.update_preset", systemImage: "arrow.triangle.2.circlepath")
+                            }
+                        }
                     } label: {
-                        Label("Сохранить шаблон", systemImage: "square.and.arrow.down")
+                        Label("settings.save_preset", systemImage: "square.and.arrow.down")
                     }
                 }
 
@@ -533,21 +665,24 @@ struct SettingsView: View {
                         saveSettings()
                         dismiss()
                     } label: {
-                        Label("Сохранить", systemImage: "checkmark")
+                        Label("alert.save", systemImage: "checkmark")
                     }
                     .disabled(!isValid)
                 }
             }
-            .alert("Сохранить шаблон", isPresented: $showingSavePreset) {
+            .alert("alert.save_preset.title", isPresented: $showingSavePreset) {
                 TextField("Название шаблона", text: $presetName)
-                Button("Сохранить") {
+                Button("alert.save") {
                     saveAsPreset()
                 }
-                Button("Отмена", role: .cancel) {
+                Button("alert.cancel", role: .cancel) {
                     presetName = ""
                 }
             } message: {
-                Text("Введите название для сохранения параметров")
+                Text("alert.save_preset.message")
+            }
+            .sheet(isPresented: $showingIndividualRounds) {
+                IndividualRoundsView(roundsConfiguration: $model.roundsConfiguration)
             }
         }
         .presentationDetents([.large])
@@ -571,9 +706,16 @@ struct SettingsView: View {
     }
 
     private func formatTotalWorkoutTime() -> String {
-        let roundTotal = roundMinutes * 60 + roundSeconds
-        let restTotal = restMinutes * 60 + restSeconds
-        let totalSeconds = (roundTotal + restTotal) * model.numberOfRounds - restTotal
+        // Для uniform режима вычисляем общее время из актуальных значений @State переменных
+        let totalSeconds: Int
+        if isIndividualMode {
+            totalSeconds = Int(model.roundsConfiguration.totalDuration)
+        } else {
+            let roundDuration = roundMinutes * 60 + roundSeconds
+            let restDuration = restMinutes * 60 + restSeconds
+            // Общее время = (раунд + отдых) * количество - последний отдых
+            totalSeconds = (roundDuration + restDuration) * model.numberOfRounds - restDuration
+        }
 
         let hours = totalSeconds / 3600
         let minutes = (totalSeconds % 3600) / 60
@@ -615,6 +757,25 @@ struct SettingsView: View {
             presetName = ""
         } catch {
             print("Failed to save preset: \(error)")
+        }
+    }
+
+    private func updateCurrentPreset() {
+        guard let currentPresetId = model.currentPresetId,
+              let preset = presets.first(where: { $0.id == currentPresetId }) else {
+            return
+        }
+
+        // Сначала сохраняем текущие настройки в модель
+        saveSettings()
+
+        // Обновляем пресет
+        preset.update(from: model)
+
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to update preset: \(error)")
         }
     }
 }

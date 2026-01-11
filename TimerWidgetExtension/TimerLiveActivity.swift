@@ -25,7 +25,7 @@ struct TimerLiveActivity: Widget {
                         Image(systemName: context.state.phase == .round ? "figure.boxing" : "moon.zzz.fill")
                             .font(.title2)
                             .foregroundStyle(context.state.phase == .round ? .red : .green)
-                        Text(context.state.phase == .round ? "РАУНД" : "ОТДЫХ")
+                        Text(context.state.phase == .round ? String(localized: "status.round") : String(localized: "status.rest"))
                             .font(.caption.weight(.semibold))
                     }
                 }
@@ -54,7 +54,7 @@ struct TimerLiveActivity: Widget {
                     if context.state.isPaused {
                         HStack {
                             Image(systemName: "pause.circle.fill")
-                            Text("На паузе")
+                            Text("widget.on_pause")
                         }
                         .font(.caption)
                         .foregroundStyle(.orange)
@@ -103,12 +103,12 @@ struct LockScreenLiveActivityView: View {
                     HStack {
                         Image(systemName: context.state.phase == .round ? "figure.boxing" : "moon.zzz.fill")
                             .font(.title3)
-                        Text(context.state.phase == .round ? "РАУНД" : "ОТДЫХ")
+                        Text(context.state.phase == .round ? String(localized: "status.round") : String(localized: "status.rest"))
                             .font(.caption.weight(.bold))
                     }
                     .foregroundStyle(context.state.phase == .round ? .red : .green)
 
-                    Text("Раунд \(context.state.currentRound)/\(context.attributes.numberOfRounds)")
+                    Text(String.localizedStringWithFormat(String(localized: "widget.round_status"), context.state.currentRound, context.attributes.numberOfRounds))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -123,7 +123,7 @@ struct LockScreenLiveActivityView: View {
                         .foregroundStyle(context.state.phase == .round ? .red : .green)
 
                     if context.state.isPaused {
-                        Text("ПАУЗА")
+                        Text("status.paused")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.orange)
                     }

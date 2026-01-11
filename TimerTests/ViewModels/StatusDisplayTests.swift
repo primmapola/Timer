@@ -23,24 +23,24 @@ final class StatusDisplayTests: XCTestCase {
 
     // MARK: - Status Text Tests
     func testStatusTextWhenIdle() {
-        XCTAssertEqual(sut.statusText, "Готов к тренировке")
+        XCTAssertEqual(sut.statusText, String(localized: "status.text.idle"))
     }
 
     func testStatusTextWhileRunningRound() {
         sut.start()
-        XCTAssertEqual(sut.statusText, "РАУНД 1")
+        XCTAssertEqual(sut.statusText, String.localizedStringWithFormat(String(localized: "status.text.round"), 1))
     }
 
     func testStatusTextWhenFinished() {
         sut.start()
         sut.reset()
-        XCTAssertEqual(sut.statusText, "Готов к тренировке")
+        XCTAssertEqual(sut.statusText, String(localized: "status.text.idle"))
     }
 
     func testStatusTextWhilePaused() {
         sut.start()
         sut.pause()
-        XCTAssertEqual(sut.statusText, "РАУНД 1")
+        XCTAssertEqual(sut.statusText, String.localizedStringWithFormat(String(localized: "status.text.round"), 1))
     }
 
     // MARK: - Status Color Tests
@@ -56,6 +56,6 @@ final class StatusDisplayTests: XCTestCase {
     func testStatusColorForRoundWhilePaused() {
         sut.start()
         sut.pause()
-        XCTAssertEqual(sut.statusColor, .red)
+        XCTAssertEqual(sut.statusColor, .orange)
     }
 }

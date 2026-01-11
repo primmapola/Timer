@@ -30,7 +30,7 @@ struct TimePickerRow: View {
                 .pickerStyle(.wheel)
                 .frame(height: pickerHeight)
 
-                Text("минут")
+                Text("time_picker.minutes")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -52,7 +52,7 @@ struct TimePickerRow: View {
                 .pickerStyle(.wheel)
                 .frame(height: pickerHeight)
 
-                Text("секунд")
+                Text("time_picker.seconds")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

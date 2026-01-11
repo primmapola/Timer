@@ -19,12 +19,29 @@ final class WorkoutPreset {
     var restWarningTime: TimeInterval
     var createdAt: Date
 
+    // Rounds configuration (stored as JSON data)
+    var roundsConfigurationData: Data?
+
     // Sound settings (stored as raw values)
     var roundStartSoundValue: UInt32
     var restStartSoundValue: UInt32
     var roundWarningSoundValue: UInt32
     var restWarningSoundValue: UInt32
     var workoutCompleteSoundValue: UInt32
+
+    // Computed property for rounds configuration
+    var roundsConfiguration: RoundsConfigurationMode {
+        get {
+            guard let data = roundsConfigurationData,
+                  let config = try? JSONDecoder().decode(RoundsConfigurationMode.self, from: data) else {
+                return .uniform(roundDuration: roundDuration, restDuration: restDuration, count: numberOfRounds)
+            }
+            return config
+        }
+        set {
+            roundsConfigurationData = try? JSONEncoder().encode(newValue)
+        }
+    }
 
     init(
         name: String,
@@ -96,15 +113,16 @@ final class WorkoutPreset {
             restWarningSound: model.restWarningSound,
             workoutCompleteSound: model.workoutCompleteSound
         )
+        // Сохраняем конфигурацию раундов
+        self.roundsConfiguration = model.roundsConfiguration
     }
 
     // Применить настройки пресета к модели
     @MainActor
     func apply(to model: BoxingTimerModel) {
         model.currentPresetName = name
-        model.roundDuration = roundDuration
-        model.restDuration = restDuration
-        model.numberOfRounds = numberOfRounds
+        model.currentPresetId = id
+        model.roundsConfiguration = roundsConfiguration
         model.roundWarningTime = roundWarningTime
         model.restWarningTime = restWarningTime
         model.roundStartSound = roundStartSound
@@ -112,5 +130,25 @@ final class WorkoutPreset {
         model.roundWarningSound = roundWarningSound
         model.restWarningSound = restWarningSound
         model.workoutCompleteSound = workoutCompleteSound
+    }
+
+    // Обновить пресет данными из модели
+    @MainActor
+    func update(from model: BoxingTimerModel) {
+        self.name = model.currentPresetName
+        self.roundsConfiguration = model.roundsConfiguration
+
+        // Обновляем базовые значения для обратной совместимости
+        self.roundDuration = model.roundDuration
+        self.restDuration = model.restDuration
+        self.numberOfRounds = model.numberOfRounds
+
+        self.roundWarningTime = model.roundWarningTime
+        self.restWarningTime = model.restWarningTime
+        self.roundStartSound = model.roundStartSound
+        self.restStartSound = model.restStartSound
+        self.roundWarningSound = model.roundWarningSound
+        self.restWarningSound = model.restWarningSound
+        self.workoutCompleteSound = model.workoutCompleteSound
     }
 }

@@ -22,7 +22,7 @@ struct TimerControlButtonsView: View {
             Button {
                 onStart()
             } label: {
-                Label("Старт", systemImage: "play.fill")
+                Label("button.start", systemImage: "play.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
             }
@@ -35,7 +35,7 @@ struct TimerControlButtonsView: View {
                 Button {
                     onStart()
                 } label: {
-                    Label("Старт", systemImage: "play.fill")
+                    Label("button.start", systemImage: "play.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
@@ -47,7 +47,7 @@ struct TimerControlButtonsView: View {
                 Button(role: .destructive) {
                     onReset()
                 } label: {
-                    Label("Сброс", systemImage: "stop.fill")
+                    Label("button.reset", systemImage: "stop.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
@@ -60,7 +60,7 @@ struct TimerControlButtonsView: View {
                 Button {
                     onPause()
                 } label: {
-                    Label("Пауза", systemImage: "pause.fill")
+                    Label("button.pause", systemImage: "pause.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
@@ -72,7 +72,7 @@ struct TimerControlButtonsView: View {
                 Button(role: .destructive) {
                     onReset()
                 } label: {
-                    Label("Сброс", systemImage: "stop.fill")
+                    Label("button.reset", systemImage: "stop.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }

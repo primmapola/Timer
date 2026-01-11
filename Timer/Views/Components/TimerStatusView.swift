@@ -36,6 +36,6 @@ struct TimerStatusView: View {
         .padding()
         .background(.thinMaterial, in: .rect(cornerRadius: 16))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Статус")
+        .accessibilityLabel("accessibility.status")
     }
 }

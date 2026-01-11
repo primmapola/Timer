@@ -91,7 +91,7 @@ struct SoundPickerView: View {
             )
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         } header: {
-            Text("Выбор звука")
+            Text("sound_picker.header")
         }
     }
     .listStyle(.insetGrouped)

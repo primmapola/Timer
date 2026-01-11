@@ -23,7 +23,7 @@ struct TimerRoundCounterView: View {
         VStack(spacing: columnSpacing) {
             HStack(spacing: rowSpacing) {
                 VStack(spacing: labelSpacing) {
-                    Text("РАУНД")
+                    Text("timer.counter.round")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -37,7 +37,7 @@ struct TimerRoundCounterView: View {
                     .foregroundStyle(.tertiary)
 
                 VStack(spacing: labelSpacing) {
-                    Text("ВСЕГО")
+                    Text("timer.counter.total")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -62,7 +62,7 @@ struct TimerRoundCounterView: View {
         .padding()
         .background(.regularMaterial, in: .rect(cornerRadius: 16))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Счетчик раундов")
-        .accessibilityValue("Раунд \(currentRound) из \(numberOfRounds)")
+        .accessibilityLabel("accessibility.counter")
+        .accessibilityValue(String.localizedStringWithFormat(String(localized: "accessibility.counter.value"), currentRound, numberOfRounds))
     }
 }

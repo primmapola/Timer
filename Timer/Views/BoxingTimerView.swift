@@ -76,7 +76,7 @@ struct BoxingTimerView: View {
                     Button {
                         isPresetsPresented = true
                     } label: {
-                        Label("Пресеты", systemImage: "folder")
+                        Label("nav.presets", systemImage: "folder")
                     }
                     .disabled(model.isRunning)
                 }
@@ -85,7 +85,7 @@ struct BoxingTimerView: View {
                     Button {
                         isSettingsPresented = true
                     } label: {
-                        Label("Настройки", systemImage: "gearshape")
+                        Label("nav.settings", systemImage: "gearshape")
                     }
                     .disabled(model.isRunning)
                 }

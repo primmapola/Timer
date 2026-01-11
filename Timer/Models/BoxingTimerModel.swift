@@ -35,10 +35,70 @@ final class BoxingTimerModel {
     }
 
     // MARK: - Settings
-    var currentPresetName: String = "Таймер"
-    var roundDuration: TimeInterval = 180
-    var restDuration: TimeInterval = 60
-    var numberOfRounds: Int = 3
+    var currentPresetName: String = String(localized: "timer")
+    var currentPresetId: UUID? = nil
+
+    // Режим конфигурации раундов
+    var roundsConfiguration: RoundsConfigurationMode = .uniform(
+        roundDuration: 180,
+        restDuration: 60,
+        count: 3
+    )
+
+    // Для обратной совместимости и удобства доступа
+    var roundDuration: TimeInterval {
+        get {
+            if case .uniform(let duration, _, _) = roundsConfiguration {
+                return duration
+            }
+            return 180
+        }
+        set {
+            if case .uniform(_, let rest, let count) = roundsConfiguration {
+                roundsConfiguration = .uniform(roundDuration: newValue, restDuration: rest, count: count)
+            }
+        }
+    }
+
+    var restDuration: TimeInterval {
+        get {
+            if case .uniform(_, let duration, _) = roundsConfiguration {
+                return duration
+            }
+            return 60
+        }
+        set {
+            if case .uniform(let round, _, let count) = roundsConfiguration {
+                roundsConfiguration = .uniform(roundDuration: round, restDuration: newValue, count: count)
+            }
+        }
+    }
+
+    var numberOfRounds: Int {
+        get {
+            return roundsConfiguration.numberOfRounds
+        }
+        set {
+            if case .uniform(let round, let rest, _) = roundsConfiguration {
+                roundsConfiguration = .uniform(roundDuration: round, restDuration: rest, count: newValue)
+            } else if case .individual(var rounds) = roundsConfiguration {
+                // Добавляем или удаляем раунды
+                if newValue > rounds.count {
+                    let lastConfig = rounds.last ?? RoundConfiguration(roundDuration: 180, restDuration: 60)
+                    for _ in rounds.count..<newValue {
+                        rounds.append(RoundConfiguration(
+                            roundDuration: lastConfig.roundDuration,
+                            restDuration: lastConfig.restDuration
+                        ))
+                    }
+                } else if newValue < rounds.count {
+                    rounds = Array(rounds.prefix(newValue))
+                }
+                roundsConfiguration = .individual(rounds: rounds)
+            }
+        }
+    }
+
     var roundWarningTime: TimeInterval = 10
     var restWarningTime: TimeInterval = 10
 
@@ -120,13 +180,13 @@ final class BoxingTimerModel {
     var phaseTitle: String {
         switch timerState {
         case .running(.round), .paused(.round):
-            return "РАУНД"
+            return String(localized: "status.round")
         case .running(.rest), .paused(.rest):
-            return "ОТДЫХ"
+            return String(localized: "status.rest")
         case .finished:
-            return "ФИНИШ"
+            return String(localized: "status.finish")
         case .idle:
-            return "ГОТОВ"
+            return String(localized: "status.ready")
         }
     }
 
@@ -145,10 +205,10 @@ final class BoxingTimerModel {
 
     var totalPhaseDuration: TimeInterval {
         switch timerState {
-        case .running(.round), .paused(.round):
-            return roundDuration
-        case .running(.rest), .paused(.rest):
-            return restDuration
+        case .running(.round(let number)), .paused(.round(let number)):
+            return roundsConfiguration.configuration(forRound: number)?.roundDuration ?? roundDuration
+        case .running(.rest(let afterRound)), .paused(.rest(let afterRound)):
+            return roundsConfiguration.configuration(forRound: afterRound)?.restDuration ?? restDuration
         case .idle, .finished:
             return 0
         }
@@ -178,13 +238,13 @@ final class BoxingTimerModel {
     var statusText: String {
         switch timerState {
         case .idle:
-            return "Хорошей тренировки!"
+            return String(localized: "status.text.idle")
         case .running(.round(let number)), .paused(.round(let number)):
-            return "РАУНД \(number)"
+            return String.localizedStringWithFormat(String(localized: "status.text.round"), number)
         case .running(.rest), .paused(.rest):
-            return "ОТДЫХ"
+            return String(localized: "status.rest")
         case .finished:
-            return "Тренировка завершена!"
+            return String(localized: "status.text.finished")
         }
     }
 
@@ -211,7 +271,8 @@ final class BoxingTimerModel {
         case .idle, .finished:
             hasStarted = true
             timerState = .running(phase: .round(number: 1))
-            timeRemaining = roundDuration
+            let firstRoundConfig = roundsConfiguration.configuration(forRound: 1)
+            timeRemaining = firstRoundConfig?.roundDuration ?? roundDuration
             playSound(roundStartSound)
             playHaptic(.success)
             startLiveActivity()
@@ -243,6 +304,8 @@ final class BoxingTimerModel {
         timeRemaining = 0
         hasStarted = false
         playHaptic(.rigid)
+        // Не сбрасываем currentPresetId и currentPresetName при reset,
+        // так как пользователь может просто хотеть перезапустить тренировку
     }
 
     func formatTime(_ seconds: TimeInterval) -> String {
@@ -282,13 +345,21 @@ final class BoxingTimerModel {
             // Предупреждающий сигнал
             if case .running(let phase) = timerState {
                 switch phase {
-                case .round:
-                    if timeRemaining == roundWarningTime {
+                case .round(let number):
+                    let config = roundsConfiguration.configuration(forRound: number)
+                    let roundDurationForRound = config?.roundDuration ?? roundDuration
+                    // Используем индивидуальное предупреждение раунда, если задано, иначе глобальное
+                    let warningTime = min(config?.roundWarningTime ?? roundWarningTime, roundDurationForRound - 1)
+                    if timeRemaining == warningTime {
                         playSound(roundWarningSound)
                         playHaptic(.warning)
                     }
-                case .rest:
-                    if timeRemaining == restWarningTime {
+                case .rest(let afterRound):
+                    let config = roundsConfiguration.configuration(forRound: afterRound)
+                    let restDurationForRound = config?.restDuration ?? restDuration
+                    // Используем индивидуальное предупреждение отдыха, если задано, иначе глобальное
+                    let warningTime = min(config?.restWarningTime ?? restWarningTime, restDurationForRound - 1)
+                    if timeRemaining == warningTime {
                         playSound(restWarningSound)
                         playHaptic(.warning)
                     }
@@ -307,7 +378,8 @@ final class BoxingTimerModel {
             if number < numberOfRounds {
                 // Переход к отдыху
                 timerState = .running(phase: .rest(afterRound: number))
-                timeRemaining = restDuration
+                let restConfig = roundsConfiguration.configuration(forRound: number)
+                timeRemaining = restConfig?.restDuration ?? restDuration
                 updateLiveActivity()
                 playSound(restStartSound)
                 playHaptic(.light)
@@ -325,7 +397,8 @@ final class BoxingTimerModel {
             // Переход к следующему раунду
             let nextRound = afterRound + 1
             timerState = .running(phase: .round(number: nextRound))
-            timeRemaining = roundDuration
+            let nextRoundConfig = roundsConfiguration.configuration(forRound: nextRound)
+            timeRemaining = nextRoundConfig?.roundDuration ?? roundDuration
             updateLiveActivity()
             playSound(roundStartSound)
             playHaptic(.light)

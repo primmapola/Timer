@@ -47,14 +47,14 @@ struct TimerDisplayView: View {
                     .scaleEffect(isWarningPulsing ? 1.05 : 1.0)
 
                 if isPaused {
-                    statusBadge(title: "ПАУЗА")
+                    statusBadge(title: String(localized: "status.paused"))
                 } else if isFinished {
-                    statusBadge(title: "ЗАВЕРШЕНО")
+                    statusBadge(title: String(localized: "status.completed"))
                 }
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Оставшееся время")
+        .accessibilityLabel("accessibility.time_remaining")
         .accessibilityValue(timeText)
     }
 

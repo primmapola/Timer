@@ -32,7 +32,7 @@ final class BoxingTimerModelTests: XCTestCase {
     }
 
     func testInitialStatusText() {
-        XCTAssertEqual(sut.statusText, "Готов к тренировке")
+        XCTAssertEqual(sut.statusText, String(localized: "status.text.idle"))
     }
 
     func testCanStartWhenIdle() {
