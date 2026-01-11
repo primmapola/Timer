@@ -159,7 +159,7 @@ final class BoxingTimerModel {
     var statusText: String {
         switch timerState {
         case .idle:
-            return "Готов к тренировке"
+            return "Хорошей тренировки!"
         case .running(.round(let number)), .paused(.round(let number)):
             return "РАУНД \(number)"
         case .running(.rest), .paused(.rest):

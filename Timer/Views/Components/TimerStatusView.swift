@@ -9,7 +9,6 @@ import SwiftUI
 
 struct TimerStatusView: View {
     let statusText: String
-    let phaseTitle: String
     let isPaused: Bool
     let statusColor: Color
     let iconName: String
@@ -17,6 +16,7 @@ struct TimerStatusView: View {
     @ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 24
     @ScaledMetric(relativeTo: .body) private var horizontalSpacing: CGFloat = 12
     @ScaledMetric(relativeTo: .body) private var verticalSpacing: CGFloat = 4
+    @ScaledMetric(relativeTo: .body) private var containerHeight: CGFloat = 44
 
     var body: some View {
         HStack(spacing: horizontalSpacing) {
@@ -28,10 +28,6 @@ struct TimerStatusView: View {
                 Text(statusText)
                     .font(.headline)
                     .foregroundStyle(.primary)
-
-                Text(isPaused ? "Пауза" : phaseTitle)
-                    .font(.caption.bold())
-                    .foregroundStyle(statusColor)
             }
 
             Spacer()
@@ -41,6 +37,5 @@ struct TimerStatusView: View {
         .background(.thinMaterial, in: .rect(cornerRadius: 16))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Статус")
-        .accessibilityValue("\(statusText), \(isPaused ? "Пауза" : phaseTitle)")
     }
 }
