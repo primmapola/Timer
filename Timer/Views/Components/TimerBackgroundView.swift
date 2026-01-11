@@ -13,15 +13,21 @@ struct TimerBackgroundView: View {
     var body: some View {
         Group {
             switch timerState {
-            case .running(.round), .paused(.round):
+            case .running(.round):
                 LinearGradient(
                     colors: [Color.red.opacity(0.25), Color.red.opacity(0.05), .clear],
                     startPoint: .top,
                     endPoint: .bottom
                 )
-            case .running(.rest), .paused(.rest):
+            case .running(.rest):
                 LinearGradient(
                     colors: [Color.green.opacity(0.25), Color.green.opacity(0.05), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            case .paused:
+                LinearGradient(
+                    colors: [Color.orange.opacity(0.25), Color.orange.opacity(0.05), .clear],
                     startPoint: .top,
                     endPoint: .bottom
                 )

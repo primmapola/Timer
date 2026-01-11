@@ -14,6 +14,7 @@ struct TimerControlButtonsView: View {
     let onReset: () -> Void
 
     @ScaledMetric(relativeTo: .body) private var horizontalSpacing: CGFloat = 16
+    @ScaledMetric(relativeTo: .title2) private var buttonHeight: CGFloat = 56
 
     var body: some View {
         if canStart {
@@ -24,6 +25,7 @@ struct TimerControlButtonsView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
             }
+            .frame(height: buttonHeight)
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .tint(.green)
@@ -36,6 +38,7 @@ struct TimerControlButtonsView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
+                .frame(height: buttonHeight)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .tint(.orange)
@@ -47,6 +50,7 @@ struct TimerControlButtonsView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
+                .frame(height: buttonHeight)
                 .buttonStyle(.bordered)
                 .controlSize(.large)
             }

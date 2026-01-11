@@ -32,7 +32,7 @@ struct TimerStatusView: View {
 
             Spacer()
         }
-        .frame(maxWidth: .infinity, minHeight: containerHeight, maxHeight: containerHeight)
+        .frame(maxWidth: .infinity)
         .padding()
         .background(.thinMaterial, in: .rect(cornerRadius: 16))
         .accessibilityElement(children: .combine)

@@ -14,6 +14,7 @@ struct BoxingTimerView: View {
     @State private var isPresetsPresented = false
     @State private var isWarningPulsing = false
     @ScaledMetric(relativeTo: .body) private var stackSpacing: CGFloat = 24
+    @ScaledMetric(relativeTo: .body) private var controlsBottomPadding: CGFloat = 24
 
     var body: some View {
         NavigationStack {
@@ -49,6 +50,7 @@ struct BoxingTimerView: View {
                     onPause: model.pause,
                     onReset: model.reset
                 )
+                .padding(.bottom, controlsBottomPadding)
             }
             .padding()
             .frame(maxWidth: .infinity)
