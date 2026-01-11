@@ -14,7 +14,7 @@ struct TimerControlButtonsView: View {
     let onReset: () -> Void
 
     @ScaledMetric(relativeTo: .body) private var horizontalSpacing: CGFloat = 16
-    @ScaledMetric(relativeTo: .title2) private var buttonHeight: CGFloat = 56
+    @ScaledMetric(relativeTo: .title2) private var buttonHeight: CGFloat = 112
 
     var body: some View {
         switch controlState {
@@ -26,10 +26,10 @@ struct TimerControlButtonsView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
             }
-            .frame(height: buttonHeight)
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .tint(.green)
+            .frame(minHeight: buttonHeight)
         case .startReset:
             HStack(spacing: horizontalSpacing) {
                 Button {
@@ -39,10 +39,10 @@ struct TimerControlButtonsView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
-                .frame(height: buttonHeight)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .tint(.green)
+                .frame(minHeight: buttonHeight)
 
                 Button(role: .destructive) {
                     onReset()
@@ -51,9 +51,9 @@ struct TimerControlButtonsView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
-                .frame(height: buttonHeight)
                 .buttonStyle(.bordered)
                 .controlSize(.large)
+                .frame(minHeight: buttonHeight)
             }
         case .pauseReset:
             HStack(spacing: horizontalSpacing) {
@@ -64,10 +64,10 @@ struct TimerControlButtonsView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
-                .frame(height: buttonHeight)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .tint(.orange)
+                .frame(minHeight: buttonHeight)
 
                 Button(role: .destructive) {
                     onReset()
@@ -76,9 +76,9 @@ struct TimerControlButtonsView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
-                .frame(height: buttonHeight)
                 .buttonStyle(.bordered)
                 .controlSize(.large)
+                .frame(minHeight: buttonHeight)
             }
         }
     }
