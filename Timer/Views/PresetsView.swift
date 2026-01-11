@@ -98,9 +98,7 @@ struct PresetsView: View {
                 }
                 .swipeActions(edge: .leading, allowsFullSwipe: false) {
                     Button {
-                        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
-                            duplicatePreset(preset)
-                        }
+                        duplicatePreset(preset)
                     } label: {
                         Label("preset.duplicate", systemImage: "doc.on.doc")
                     }
@@ -120,7 +118,6 @@ struct PresetsView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: presets.count)
     }
 
     private func loadPreset(_ preset: WorkoutPreset) {
@@ -149,25 +146,29 @@ struct PresetsView: View {
 
     private func duplicatePreset(_ preset: WorkoutPreset) {
         let duplicateName = String.localizedStringWithFormat(String(localized: "preset.duplicate_name"), preset.name)
+        let insertionDate = PresetOrdering.duplicateInsertionDate(for: preset, in: presets)
 
-        let duplicatePreset = WorkoutPreset(
-            name: duplicateName,
-            roundDuration: preset.roundDuration,
-            restDuration: preset.restDuration,
-            numberOfRounds: preset.numberOfRounds,
-            roundWarningTime: preset.roundWarningTime,
-            restWarningTime: preset.restWarningTime,
-            roundStartSound: preset.roundStartSound,
-            restStartSound: preset.restStartSound,
-            roundWarningSound: preset.roundWarningSound,
-            restWarningSound: preset.restWarningSound,
-            workoutCompleteSound: preset.workoutCompleteSound
-        )
-        // Copy rounds configuration
-        duplicatePreset.roundsConfiguration = preset.roundsConfiguration
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+            let duplicatePreset = WorkoutPreset(
+                name: duplicateName,
+                roundDuration: preset.roundDuration,
+                restDuration: preset.restDuration,
+                numberOfRounds: preset.numberOfRounds,
+                roundWarningTime: preset.roundWarningTime,
+                restWarningTime: preset.restWarningTime,
+                roundStartSound: preset.roundStartSound,
+                restStartSound: preset.restStartSound,
+                roundWarningSound: preset.roundWarningSound,
+                restWarningSound: preset.restWarningSound,
+                workoutCompleteSound: preset.workoutCompleteSound
+            )
+            // Copy rounds configuration
+            duplicatePreset.roundsConfiguration = preset.roundsConfiguration
+            duplicatePreset.createdAt = insertionDate
 
-        modelContext.insert(duplicatePreset)
-        try? modelContext.save()
+            modelContext.insert(duplicatePreset)
+            try? modelContext.save()
+        }
     }
 
     private func updatePreset(_ preset: WorkoutPreset) {
