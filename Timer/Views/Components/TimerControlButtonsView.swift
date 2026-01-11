@@ -8,91 +8,77 @@
 import SwiftUI
 
 struct TimerControlButtonsView: View {
-    let canStart: Bool
-    @State private var isInitial: Bool
+    let controlState: BoxingTimerModel.ControlButtonsState
     let onStart: () -> Void
     let onPause: () -> Void
     let onReset: () -> Void
 
-    init(
-        canStart: Bool,
-        isInitial: Bool = false,
-        onStart: @escaping () -> Void,
-        onPause: @escaping () -> Void,
-        onReset: @escaping () -> Void
-    ) {
-        self.canStart = canStart
-        _isInitial = State(initialValue: isInitial)
-        self.onStart = onStart
-        self.onPause = onPause
-        self.onReset = onReset
-    }
-
     @ScaledMetric(relativeTo: .body) private var horizontalSpacing: CGFloat = 16
     @ScaledMetric(relativeTo: .title2) private var buttonHeight: CGFloat = 112
-    
-    private func buttonLabel(title: String, systemImage: String) -> some View {
-        HStack {
-            Label(title, systemImage: systemImage)
-                .font(.headline)
-        }
-        .frame(maxWidth: .infinity, minHeight: buttonHeight)
-    }
 
     var body: some View {
-        if canStart {
+        switch controlState {
+        case .startOnly:
+            Button {
+                onStart()
+            } label: {
+                Label("Старт", systemImage: "play.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(.green)
+            .frame(minHeight: buttonHeight)
+        case .startReset:
             HStack(spacing: horizontalSpacing) {
                 Button {
-                    if isInitial {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            isInitial = false
-                        }
-                    }
                     onStart()
                 } label: {
-                    buttonLabel(title: "Старт", systemImage: "play.fill")
+                    Label("Старт", systemImage: "play.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 .tint(.green)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .frame(minHeight: buttonHeight)
 
-                if !isInitial {
-                    Button(role: .destructive) {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            isInitial = true
-                        }
-                        onReset()
-                    } label: {
-                        buttonLabel(title: "Сброс", systemImage: "stop.fill")
-                    }
-                    .disabled(false)
-                    .buttonStyle(.bordered)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                Button(role: .destructive) {
+                    onReset()
+                } label: {
+                    Label("Сброс", systemImage: "stop.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .frame(minHeight: buttonHeight)
             }
-            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isInitial)
-        } else {
+        case .pauseReset:
             HStack(spacing: horizontalSpacing) {
                 Button {
                     onPause()
                 } label: {
-                    buttonLabel(title: "Пауза", systemImage: "pause.fill")
+                    Label("Пауза", systemImage: "pause.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 .tint(.orange)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .frame(minHeight: buttonHeight)
 
                 Button(role: .destructive) {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                        isInitial = true
-                    }
                     onReset()
                 } label: {
-                    buttonLabel(title: "Сброс", systemImage: "stop.fill")
+                    Label("Сброс", systemImage: "stop.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .controlSize(.large)
+                .frame(minHeight: buttonHeight)
             }
         }
     }

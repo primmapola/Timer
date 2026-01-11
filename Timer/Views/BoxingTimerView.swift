@@ -45,7 +45,7 @@ struct BoxingTimerView: View {
                 Spacer()
 
                 TimerControlButtonsView(
-                    canStart: model.canStart,
+                    controlState: model.controlButtonsState,
                     onStart: model.start,
                     onPause: model.pause,
                     onReset: model.reset
