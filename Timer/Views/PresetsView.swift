@@ -192,26 +192,28 @@ struct PresetRow: View {
         let minutes = Int(seconds) / 60
         let secs = Int(seconds) % 60
         if minutes > 0 {
-            return String(format: "%d:%02d", minutes, secs)
-        } else {
-            return String(format: "%d сек", secs)
+            return "\(minutes):\(twoDigitString(secs))"
         }
+        return "\(secs) сек"
     }
 
     private func formatTotalTime(_ seconds: TimeInterval) -> String {
         let minutes = Int(seconds) / 60
         let secs = Int(seconds) % 60
         if minutes > 0 {
-            return String(format: "%d мин %d сек", minutes, secs)
-        } else {
-            return String(format: "%d сек", secs)
+            return "\(minutes) мин \(secs) сек"
         }
+        return "\(secs) сек"
+    }
+
+    private func twoDigitString(_ value: Int) -> String {
+        value.formatted(.number.precision(.integerLength(2)).grouping(.never))
     }
 }
 
 #Preview("With Presets") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: WorkoutPreset.self, configurations: config)
+    let container = ModelContainer.previewContainer(configurations: config)
 
     let model = BoxingTimerModel()
 
@@ -252,7 +254,7 @@ struct PresetRow: View {
 
 #Preview("Empty") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: WorkoutPreset.self, configurations: config)
+    let container = ModelContainer.previewContainer(configurations: config)
     let model = BoxingTimerModel()
 
     return PresetsView(model: model)

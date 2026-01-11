@@ -159,7 +159,7 @@ final class BoxingTimerModel {
     var statusText: String {
         switch timerState {
         case .idle:
-            return "Хорошей тренировки"
+            return "Хорошей тренировки!"
         case .running(.round(let number)), .paused(.round(let number)):
             return "РАУНД \(number)"
         case .running(.rest), .paused(.rest):
@@ -221,9 +221,14 @@ final class BoxingTimerModel {
     }
 
     func formatTime(_ seconds: TimeInterval) -> String {
-        let minutes = Int(seconds) / 60
-        let secs = Int(seconds) % 60
-        return String(format: "%02d:%02d", minutes, secs)
+        let totalSeconds = max(0, Int(seconds))
+        let minutes = totalSeconds / 60
+        let secs = totalSeconds % 60
+        return "\(twoDigitString(minutes)):\(twoDigitString(secs))"
+    }
+
+    private func twoDigitString(_ value: Int) -> String {
+        value.formatted(.number.precision(.integerLength(2)).grouping(.never))
     }
 
     // MARK: - Private Methods
