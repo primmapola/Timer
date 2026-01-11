@@ -11,7 +11,7 @@ import SwiftUI
 
 @MainActor
 final class BoxingTimerModelTests: XCTestCase {
-    var sut: BoxingTimerModel!
+    var sut = BoxingTimerModel()
 
     override func setUp() async throws {
         sut = BoxingTimerModel()
@@ -19,7 +19,6 @@ final class BoxingTimerModelTests: XCTestCase {
 
     override func tearDown() async throws {
         sut.reset()
-        sut = nil
     }
 
     // MARK: - Initial State Tests
@@ -267,5 +266,34 @@ final class BoxingTimerModelTests: XCTestCase {
     func testWarningTimeWithLargeValue() {
         sut.roundWarningTime = 60
         XCTAssertEqual(sut.roundWarningTime, 60)
+    }
+
+    // MARK: - Phase Metadata Tests
+    func testCompletedRoundsWhenIdleIsZero() {
+        XCTAssertEqual(sut.completedRounds, 0)
+    }
+
+    func testIsPausedAfterPause() {
+        sut.start()
+        sut.pause()
+        XCTAssertTrue(sut.isPaused)
+    }
+
+    func testPhaseTitleWhenRunningRound() {
+        sut.start()
+        XCTAssertEqual(sut.phaseTitle, "РАУНД")
+    }
+
+    func testIsInWarningTimeWhenWarningMatchesDuration() {
+        sut.roundDuration = 12
+        sut.roundWarningTime = 12
+        sut.start()
+        XCTAssertTrue(sut.isInWarningTime)
+    }
+
+    func testPhaseProgressAtRoundStartIsZero() {
+        sut.roundDuration = 90
+        sut.start()
+        XCTAssertEqual(sut.phaseProgress, 0, accuracy: 0.0001)
     }
 }

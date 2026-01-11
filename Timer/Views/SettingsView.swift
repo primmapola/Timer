@@ -524,7 +524,7 @@ struct SettingsView: View {
                     Button {
                         showingSavePreset = true
                     } label: {
-                        Image(systemName: "square.and.arrow.down")
+                        Label("Сохранить шаблон", systemImage: "square.and.arrow.down")
                     }
                 }
 
@@ -533,7 +533,7 @@ struct SettingsView: View {
                         saveSettings()
                         dismiss()
                     } label: {
-                        Image(systemName: "checkmark")
+                        Label("Сохранить", systemImage: "checkmark")
                     }
                     .disabled(!isValid)
                 }
@@ -580,14 +580,17 @@ struct SettingsView: View {
         let seconds = totalSeconds % 60
 
         if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
-        } else {
-            return String(format: "%d:%02d", minutes, seconds)
+            return "\(hours):\(twoDigitString(minutes)):\(twoDigitString(seconds))"
         }
+        return "\(minutes):\(twoDigitString(seconds))"
     }
 
     private func formatTime(minutes: Int, seconds: Int) -> String {
-        return String(format: "%d:%02d", minutes, seconds)
+        return "\(minutes):\(twoDigitString(seconds))"
+    }
+
+    private func twoDigitString(_ value: Int) -> String {
+        value.formatted(.number.precision(.integerLength(2)).grouping(.never))
     }
 
     private func saveSettings() {

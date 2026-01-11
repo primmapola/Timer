@@ -21,7 +21,7 @@ struct TimerLiveActivity: Widget {
             DynamicIsland {
                 // Expanded UI
                 DynamicIslandExpandedRegion(.leading) {
-                    HStack(spacing: 4) {
+                    HStack {
                         Image(systemName: context.state.phase == .round ? "figure.boxing" : "moon.zzz.fill")
                             .font(.title2)
                             .foregroundStyle(context.state.phase == .round ? .red : .green)
@@ -31,7 +31,7 @@ struct TimerLiveActivity: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
-                    HStack(spacing: 4) {
+                    HStack {
                         Text("\(context.state.currentRound)")
                             .font(.title.weight(.bold))
                         Text("/")
@@ -45,7 +45,7 @@ struct TimerLiveActivity: Widget {
 
                 DynamicIslandExpandedRegion(.center) {
                     Text(formatTime(context.state.timeRemaining))
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .font(.title.bold())
                         .monospacedDigit()
                         .foregroundStyle(context.state.phase == .round ? .red : .green)
                 }
@@ -78,7 +78,11 @@ struct TimerLiveActivity: Widget {
     private func formatTime(_ seconds: TimeInterval) -> String {
         let minutes = Int(seconds) / 60
         let secs = Int(seconds) % 60
-        return String(format: "%02d:%02d", minutes, secs)
+        return "\(twoDigitString(minutes)):\(twoDigitString(secs))"
+    }
+
+    private func twoDigitString(_ value: Int) -> String {
+        value.formatted(.number.precision(.integerLength(2)).grouping(.never))
     }
 }
 
@@ -86,17 +90,17 @@ struct LockScreenLiveActivityView: View {
     let context: ActivityViewContext<BoxingTimerActivityAttributes>
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack {
             // Название тренировки
             Text(context.attributes.workoutName)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 16) {
+            HStack {
                 // Левая часть - иконка и фаза
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
+                VStack(alignment: .leading) {
+                    HStack {
                         Image(systemName: context.state.phase == .round ? "figure.boxing" : "moon.zzz.fill")
                             .font(.title3)
                         Text(context.state.phase == .round ? "РАУНД" : "ОТДЫХ")
@@ -112,9 +116,9 @@ struct LockScreenLiveActivityView: View {
                 Spacer()
 
                 // Центр - таймер
-                VStack(spacing: 2) {
+                VStack {
                     Text(formatTime(context.state.timeRemaining))
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(.title2.bold())
                         .monospacedDigit()
                         .foregroundStyle(context.state.phase == .round ? .red : .green)
 
@@ -132,6 +136,10 @@ struct LockScreenLiveActivityView: View {
     private func formatTime(_ seconds: TimeInterval) -> String {
         let minutes = Int(seconds) / 60
         let secs = Int(seconds) % 60
-        return String(format: "%02d:%02d", minutes, secs)
+        return "\(twoDigitString(minutes)):\(twoDigitString(secs))"
+    }
+
+    private func twoDigitString(_ value: Int) -> String {
+        value.formatted(.number.precision(.integerLength(2)).grouping(.never))
     }
 }

@@ -9,6 +9,9 @@ import SwiftUI
 import AVFoundation
 import Combine
 import ActivityKit
+#if canImport(UIKit)
+import UIKit
+#endif
 
 @MainActor
 @Observable
@@ -59,8 +62,28 @@ final class BoxingTimerModel {
         }
     }
 
+    var completedRounds: Int {
+        switch timerState {
+        case .running(.round(let number)), .paused(.round(let number)):
+            return max(0, number - 1)
+        case .running(.rest(let afterRound)), .paused(.rest(let afterRound)):
+            return afterRound
+        case .finished:
+            return numberOfRounds
+        case .idle:
+            return 0
+        }
+    }
+
     var isRunning: Bool {
         if case .running = timerState {
+            return true
+        }
+        return false
+    }
+
+    var isPaused: Bool {
+        if case .paused = timerState {
             return true
         }
         return false
@@ -75,10 +98,68 @@ final class BoxingTimerModel {
         }
     }
 
+    var phaseTitle: String {
+        switch timerState {
+        case .running(.round), .paused(.round):
+            return "РАУНД"
+        case .running(.rest), .paused(.rest):
+            return "ОТДЫХ"
+        case .finished:
+            return "ФИНИШ"
+        case .idle:
+            return "ГОТОВ"
+        }
+    }
+
+    var phaseIconName: String {
+        switch timerState {
+        case .running(.round), .paused(.round):
+            return "figure.boxing"
+        case .running(.rest), .paused(.rest):
+            return "figure.mind.and.body"
+        case .finished:
+            return "flag.checkered"
+        case .idle:
+            return "bolt.heart"
+        }
+    }
+
+    var totalPhaseDuration: TimeInterval {
+        switch timerState {
+        case .running(.round), .paused(.round):
+            return roundDuration
+        case .running(.rest), .paused(.rest):
+            return restDuration
+        case .idle, .finished:
+            return 0
+        }
+    }
+
+    var phaseProgress: Double {
+        let total = totalPhaseDuration
+        guard total > 0 else {
+            return timerState == .finished ? 1 : 0
+        }
+        let progress = (total - timeRemaining) / total
+        return min(max(progress, 0), 1)
+    }
+
+    var isInWarningTime: Bool {
+        guard timeRemaining > 0 else { return false }
+        switch timerState {
+        case .running(.round), .paused(.round):
+            return timeRemaining <= roundWarningTime
+        case .running(.rest), .paused(.rest):
+            return timeRemaining <= restWarningTime
+        case .idle, .finished:
+            return false
+        }
+    }
+
     var statusText: String {
         switch timerState {
         case .idle:
-            return "Хорошей тренировки"
+            return "Готов к тренировке"
         case .running(.round(let number)), .paused(.round(let number)):
             return "РАУНД \(number)"
         case .running(.rest), .paused(.rest):
@@ -108,11 +189,13 @@ final class BoxingTimerModel {
             timerState = .running(phase: .round(number: 1))
             timeRemaining = roundDuration
             playSound(roundStartSound)
+            playHaptic(.success)
             startLiveActivity()
             startTimerPublisher()
 
         case .paused(let phase):
             timerState = .running(phase: phase)
+            playHaptic(.light)
             updateLiveActivity()
             startTimerPublisher()
 
@@ -124,6 +207,7 @@ final class BoxingTimerModel {
     func pause() {
         guard case .running(let phase) = timerState else { return }
         timerState = .paused(phase: phase)
+        playHaptic(.warning)
         updateLiveActivity()
         stopTimerPublisher()
     }
@@ -133,12 +217,18 @@ final class BoxingTimerModel {
         endLiveActivity()
         timerState = .idle
         timeRemaining = 0
+        playHaptic(.rigid)
     }
 
     func formatTime(_ seconds: TimeInterval) -> String {
-        let minutes = Int(seconds) / 60
-        let secs = Int(seconds) % 60
-        return String(format: "%02d:%02d", minutes, secs)
+        let totalSeconds = max(0, Int(seconds))
+        let minutes = totalSeconds / 60
+        let secs = totalSeconds % 60
+        return "\(twoDigitString(minutes)):\(twoDigitString(secs))"
+    }
+
+    private func twoDigitString(_ value: Int) -> String {
+        value.formatted(.number.precision(.integerLength(2)).grouping(.never))
     }
 
     // MARK: - Private Methods
@@ -170,10 +260,12 @@ final class BoxingTimerModel {
                 case .round:
                     if timeRemaining == roundWarningTime {
                         playSound(roundWarningSound)
+                        playHaptic(.warning)
                     }
                 case .rest:
                     if timeRemaining == restWarningTime {
                         playSound(restWarningSound)
+                        playHaptic(.warning)
                     }
                 }
             }
@@ -193,6 +285,7 @@ final class BoxingTimerModel {
                 timeRemaining = restDuration
                 updateLiveActivity()
                 playSound(restStartSound)
+                playHaptic(.light)
             } else {
                 // Тренировка завершена
                 timerState = .finished
@@ -200,6 +293,7 @@ final class BoxingTimerModel {
                 stopTimerPublisher()
                 endLiveActivity()
                 playSound(workoutCompleteSound)
+                playHaptic(.success)
             }
 
         case .rest(let afterRound):
@@ -209,11 +303,27 @@ final class BoxingTimerModel {
             timeRemaining = roundDuration
             updateLiveActivity()
             playSound(roundStartSound)
+            playHaptic(.light)
         }
     }
 
     private func playSound(_ sound: SystemSound) {
         AudioServicesPlaySystemSound(sound.rawValue)
+    }
+
+    private func playHaptic(_ style: HapticStyle) {
+        #if canImport(UIKit)
+        switch style {
+        case .light:
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        case .rigid:
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        case .warning:
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        case .success:
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        #endif
     }
 
     // MARK: - Live Activity Methods
@@ -286,6 +396,13 @@ final class BoxingTimerModel {
             self.activity = nil
         }
     }
+}
+
+private enum HapticStyle {
+    case light
+    case rigid
+    case warning
+    case success
 }
 
 // MARK: - System Sounds
