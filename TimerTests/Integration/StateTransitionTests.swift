@@ -65,9 +65,12 @@ final class StateTransitionTests: XCTestCase {
 
     // MARK: - Integration Tests
     func testFullWorkoutCycle() {
-        sut.numberOfRounds = 2
-        sut.roundDuration = 5
-        sut.restDuration = 3
+        let configuration = RoundConfiguration(
+            roundDuration: 5,
+            restDuration: 3,
+            roundWarningTime: 1
+        )
+        sut.updateRoundConfigurations([configuration, configuration])
 
         // Start workout
         sut.start()
