@@ -10,14 +10,13 @@ import XCTest
 
 @MainActor
 final class TimeFormatterTests: XCTestCase {
-    var sut: BoxingTimerModel!
+    var sut = BoxingTimerModel()
 
     override func setUp() async throws {
         sut = BoxingTimerModel()
     }
 
     override func tearDown() async throws {
-        sut = nil
     }
 
     // MARK: - Format Time Tests

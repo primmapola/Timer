@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct TimerApp: App {
+    @State private var timerModel = BoxingTimerModel()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             WorkoutPreset.self,
@@ -25,7 +27,7 @@ struct TimerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            BoxingTimerView()
+            BoxingTimerView(model: timerModel)
         }
         .modelContainer(sharedModelContainer)
     }
