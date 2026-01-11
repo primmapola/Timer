@@ -20,18 +20,9 @@ struct BoxingTimerView: View {
             VStack(spacing: stackSpacing) {
                 TimerStatusView(
                     statusText: model.statusText,
-                    phaseTitle: model.phaseTitle,
                     isPaused: model.isPaused,
                     statusColor: model.statusColor,
                     iconName: model.phaseIconName
-                )
-
-                TimerPhaseBadgeView(
-                    phaseTitle: model.phaseTitle,
-                    iconName: model.phaseIconName,
-                    statusColor: model.statusColor,
-                    currentRound: model.currentRound,
-                    numberOfRounds: model.numberOfRounds
                 )
 
                 TimerDisplayView(
