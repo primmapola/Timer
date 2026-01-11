@@ -29,7 +29,7 @@ final class BoxingTimerModel {
     }
 
     // MARK: - Settings
-    var currentPresetName: String = "Бокс Таймер"
+    var currentPresetName: String = "Таймер"
     var roundDuration: TimeInterval = 180
     var restDuration: TimeInterval = 60
     var numberOfRounds: Int = 3
@@ -171,10 +171,14 @@ final class BoxingTimerModel {
 
     var statusColor: Color {
         switch timerState {
-        case .running(.round), .paused(.round):
+        case .running(.round):
             return .red
-        case .running(.rest), .paused(.rest):
+        case .paused(.round):
+            return .orange
+        case .running(.rest):
             return .green
+        case .paused(.rest):
+            return .orange
         case .finished:
             return .purple
         case .idle:
