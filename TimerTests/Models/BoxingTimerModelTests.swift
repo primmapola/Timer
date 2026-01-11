@@ -40,6 +40,10 @@ final class BoxingTimerModelTests: XCTestCase {
         XCTAssertFalse(sut.isRunning)
     }
 
+    func testControlButtonsStateIsStartOnlyWhenIdle() {
+        XCTAssertEqual(sut.controlButtonsState, .startOnly)
+    }
+
     // MARK: - Start Timer Tests
     func testStartTimer() {
         sut.start()
@@ -48,6 +52,12 @@ final class BoxingTimerModelTests: XCTestCase {
         XCTAssertEqual(sut.timeRemaining, 180)
         XCTAssertTrue(sut.isRunning)
         XCTAssertFalse(sut.canStart)
+    }
+
+    func testControlButtonsStateIsPauseResetWhenRunning() {
+        sut.start()
+
+        XCTAssertEqual(sut.controlButtonsState, .pauseReset)
     }
 
     func testStartTimerSetsCorrectRound() {
@@ -80,6 +90,13 @@ final class BoxingTimerModelTests: XCTestCase {
 
         XCTAssertFalse(sut.isRunning)
         XCTAssertTrue(sut.canStart)
+    }
+
+    func testControlButtonsStateIsStartResetWhenPaused() {
+        sut.start()
+        sut.pause()
+
+        XCTAssertEqual(sut.controlButtonsState, .startReset)
     }
 
     func testPausePreservesTimeRemaining() {

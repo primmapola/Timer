@@ -28,6 +28,12 @@ final class BoxingTimerModel {
         }
     }
 
+    enum ControlButtonsState: Equatable {
+        case startOnly
+        case startReset
+        case pauseReset
+    }
+
     // MARK: - Settings
     var currentPresetName: String = "Бокс Таймер"
     var roundDuration: TimeInterval = 180
@@ -46,6 +52,7 @@ final class BoxingTimerModel {
     // MARK: - State
     private(set) var timerState: TimerState = .idle
     private(set) var timeRemaining: TimeInterval = 0
+    private(set) var hasStarted: Bool = false
 
     private var cancellable: AnyCancellable?
     private var activity: Activity<BoxingTimerActivityAttributes>?
@@ -96,6 +103,18 @@ final class BoxingTimerModel {
         case .running:
             return false
         }
+    }
+
+    var controlButtonsState: ControlButtonsState {
+        if isRunning {
+            return .pauseReset
+        }
+
+        if hasStarted {
+            return .startReset
+        }
+
+        return .startOnly
     }
 
     var phaseTitle: String {
@@ -186,6 +205,7 @@ final class BoxingTimerModel {
     func start() {
         switch timerState {
         case .idle, .finished:
+            hasStarted = true
             timerState = .running(phase: .round(number: 1))
             timeRemaining = roundDuration
             playSound(roundStartSound)
@@ -217,6 +237,7 @@ final class BoxingTimerModel {
         endLiveActivity()
         timerState = .idle
         timeRemaining = 0
+        hasStarted = false
         playHaptic(.rigid)
     }
 

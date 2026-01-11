@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct TimerControlButtonsView: View {
-    let canStart: Bool
+    let controlState: BoxingTimerModel.ControlButtonsState
     let onStart: () -> Void
     let onPause: () -> Void
     let onReset: () -> Void
@@ -17,7 +17,8 @@ struct TimerControlButtonsView: View {
     @ScaledMetric(relativeTo: .title2) private var buttonHeight: CGFloat = 56
 
     var body: some View {
-        if canStart {
+        switch controlState {
+        case .startOnly:
             Button {
                 onStart()
             } label: {
@@ -29,7 +30,32 @@ struct TimerControlButtonsView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .tint(.green)
-        } else {
+        case .startReset:
+            HStack(spacing: horizontalSpacing) {
+                Button {
+                    onStart()
+                } label: {
+                    Label("Старт", systemImage: "play.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
+                .frame(height: buttonHeight)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(.green)
+
+                Button(role: .destructive) {
+                    onReset()
+                } label: {
+                    Label("Сброс", systemImage: "stop.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
+                .frame(height: buttonHeight)
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+            }
+        case .pauseReset:
             HStack(spacing: horizontalSpacing) {
                 Button {
                     onPause()
