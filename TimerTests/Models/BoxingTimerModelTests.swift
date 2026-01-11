@@ -26,13 +26,15 @@ final class BoxingTimerModelTests: XCTestCase {
         XCTAssertEqual(sut.timerState, .idle)
         XCTAssertEqual(sut.timeRemaining, 0)
         XCTAssertEqual(sut.currentRound, 1)
-        XCTAssertEqual(sut.roundDuration, 180)
-        XCTAssertEqual(sut.restDuration, 60)
         XCTAssertEqual(sut.numberOfRounds, 3)
+        XCTAssertEqual(sut.roundConfigurations.count, 3)
+        XCTAssertEqual(sut.roundConfigurations.first?.roundDuration, 180)
+        XCTAssertEqual(sut.roundConfigurations.first?.restDuration, 60)
+        XCTAssertEqual(sut.roundConfigurations.first?.roundWarningTime, 10)
     }
 
     func testInitialStatusText() {
-        XCTAssertEqual(sut.statusText, "Готов к тренировке")
+        XCTAssertEqual(sut.statusText, "Хорошей тренировки!")
     }
 
     func testCanStartWhenIdle() {
@@ -71,7 +73,7 @@ final class BoxingTimerModelTests: XCTestCase {
     }
 
     func testStartTimerWithCustomDuration() {
-        sut.roundDuration = 120
+        sut.roundConfigurations[0].roundDuration = 120
         sut.start()
 
         XCTAssertEqual(sut.timeRemaining, 120)
@@ -152,21 +154,40 @@ final class BoxingTimerModelTests: XCTestCase {
 
     // MARK: - Settings Tests
     func testChangeRoundDuration() {
-        sut.roundDuration = 240
-        XCTAssertEqual(sut.roundDuration, 240)
+        sut.roundConfigurations[0].roundDuration = 240
+        XCTAssertEqual(sut.roundConfigurations[0].roundDuration, 240)
 
         sut.start()
         XCTAssertEqual(sut.timeRemaining, 240)
     }
 
     func testChangeRestDuration() {
-        sut.restDuration = 90
-        XCTAssertEqual(sut.restDuration, 90)
+        sut.roundConfigurations[0].restDuration = 90
+        XCTAssertEqual(sut.roundConfigurations[0].restDuration, 90)
     }
 
     func testChangeNumberOfRounds() {
         sut.numberOfRounds = 5
         XCTAssertEqual(sut.numberOfRounds, 5)
+    }
+
+    func testChangingNumberOfRoundsResizesConfigurations() {
+        sut.numberOfRounds = 4
+        XCTAssertEqual(sut.roundConfigurations.count, 4)
+
+        sut.numberOfRounds = 2
+        XCTAssertEqual(sut.roundConfigurations.count, 2)
+    }
+
+    func testUpdateRoundConfigurationsUpdatesNumberOfRounds() {
+        let configuration = RoundConfiguration(
+            roundDuration: 90,
+            restDuration: 30,
+            roundWarningTime: 10
+        )
+        sut.updateRoundConfigurations([configuration, configuration, configuration, configuration])
+        XCTAssertEqual(sut.numberOfRounds, 4)
+        XCTAssertEqual(sut.roundConfigurations.count, 4)
     }
 
     // MARK: - Edge Cases Tests
@@ -261,13 +282,13 @@ final class BoxingTimerModelTests: XCTestCase {
 
     // MARK: - Warning Time Tests
     func testDefaultWarningTimes() {
-        XCTAssertEqual(sut.roundWarningTime, 10)
+        XCTAssertEqual(sut.roundConfigurations.first?.roundWarningTime, 10)
         XCTAssertEqual(sut.restWarningTime, 10)
     }
 
     func testChangeRoundWarningTime() {
-        sut.roundWarningTime = 15
-        XCTAssertEqual(sut.roundWarningTime, 15)
+        sut.roundConfigurations[0].roundWarningTime = 15
+        XCTAssertEqual(sut.roundConfigurations[0].roundWarningTime, 15)
     }
 
     func testChangeRestWarningTime() {
@@ -276,13 +297,13 @@ final class BoxingTimerModelTests: XCTestCase {
     }
 
     func testWarningTimeWithZeroValue() {
-        sut.roundWarningTime = 0
-        XCTAssertEqual(sut.roundWarningTime, 0)
+        sut.roundConfigurations[0].roundWarningTime = 0
+        XCTAssertEqual(sut.roundConfigurations[0].roundWarningTime, 0)
     }
 
     func testWarningTimeWithLargeValue() {
-        sut.roundWarningTime = 60
-        XCTAssertEqual(sut.roundWarningTime, 60)
+        sut.roundConfigurations[0].roundWarningTime = 60
+        XCTAssertEqual(sut.roundConfigurations[0].roundWarningTime, 60)
     }
 
     // MARK: - Phase Metadata Tests
@@ -302,14 +323,14 @@ final class BoxingTimerModelTests: XCTestCase {
     }
 
     func testIsInWarningTimeWhenWarningMatchesDuration() {
-        sut.roundDuration = 12
-        sut.roundWarningTime = 12
+        sut.roundConfigurations[0].roundDuration = 12
+        sut.roundConfigurations[0].roundWarningTime = 12
         sut.start()
         XCTAssertTrue(sut.isInWarningTime)
     }
 
     func testPhaseProgressAtRoundStartIsZero() {
-        sut.roundDuration = 90
+        sut.roundConfigurations[0].roundDuration = 90
         sut.start()
         XCTAssertEqual(sut.phaseProgress, 0, accuracy: 0.0001)
     }

@@ -17,6 +17,7 @@ final class WorkoutPreset {
     var numberOfRounds: Int
     var roundWarningTime: TimeInterval
     var restWarningTime: TimeInterval
+    var roundConfigurationsData: Data = Data()
     var createdAt: Date
 
     // Sound settings (stored as raw values)
@@ -37,16 +38,26 @@ final class WorkoutPreset {
         restStartSound: SystemSound,
         roundWarningSound: SystemSound,
         restWarningSound: SystemSound,
-        workoutCompleteSound: SystemSound
+        workoutCompleteSound: SystemSound,
+        roundConfigurations: [RoundConfiguration]? = nil
     ) {
+        let configurations = roundConfigurations ?? Self.fallbackRoundConfigurations(
+            numberOfRounds: numberOfRounds,
+            roundDuration: roundDuration,
+            restDuration: restDuration,
+            roundWarningTime: roundWarningTime
+        )
+        let primaryConfiguration = configurations.first ?? .defaultConfiguration
+
         self.id = UUID()
         self.name = name
-        self.roundDuration = roundDuration
-        self.restDuration = restDuration
-        self.numberOfRounds = numberOfRounds
-        self.roundWarningTime = roundWarningTime
+        self.roundDuration = primaryConfiguration.roundDuration
+        self.restDuration = primaryConfiguration.restDuration
+        self.numberOfRounds = configurations.count
+        self.roundWarningTime = primaryConfiguration.roundWarningTime
         self.restWarningTime = restWarningTime
         self.createdAt = Date()
+        self.roundConfigurationsData = Self.encodeRoundConfigurations(configurations)
         self.roundStartSoundValue = roundStartSound.rawValue
         self.restStartSoundValue = restStartSound.rawValue
         self.roundWarningSoundValue = roundWarningSound.rawValue
@@ -80,21 +91,45 @@ final class WorkoutPreset {
         set { workoutCompleteSoundValue = newValue.rawValue }
     }
 
+    var roundConfigurations: [RoundConfiguration] {
+        get {
+            if let decoded = Self.decodeRoundConfigurations(roundConfigurationsData), !decoded.isEmpty {
+                return decoded
+            }
+            return Self.fallbackRoundConfigurations(
+                numberOfRounds: numberOfRounds,
+                roundDuration: roundDuration,
+                restDuration: restDuration,
+                roundWarningTime: roundWarningTime
+            )
+        }
+        set {
+            roundConfigurationsData = Self.encodeRoundConfigurations(newValue)
+            numberOfRounds = newValue.count
+            if let primary = newValue.first {
+                roundDuration = primary.roundDuration
+                restDuration = primary.restDuration
+                roundWarningTime = primary.roundWarningTime
+            }
+        }
+    }
+
     // Создать пресет из текущих настроек модели
     @MainActor
     convenience init(name: String, from model: BoxingTimerModel) {
         self.init(
             name: name,
-            roundDuration: model.roundDuration,
-            restDuration: model.restDuration,
+            roundDuration: model.roundConfigurations.first?.roundDuration ?? RoundConfiguration.defaultConfiguration.roundDuration,
+            restDuration: model.roundConfigurations.first?.restDuration ?? RoundConfiguration.defaultConfiguration.restDuration,
             numberOfRounds: model.numberOfRounds,
-            roundWarningTime: model.roundWarningTime,
+            roundWarningTime: model.roundConfigurations.first?.roundWarningTime ?? RoundConfiguration.defaultConfiguration.roundWarningTime,
             restWarningTime: model.restWarningTime,
             roundStartSound: model.roundStartSound,
             restStartSound: model.restStartSound,
             roundWarningSound: model.roundWarningSound,
             restWarningSound: model.restWarningSound,
-            workoutCompleteSound: model.workoutCompleteSound
+            workoutCompleteSound: model.workoutCompleteSound,
+            roundConfigurations: model.roundConfigurations
         )
     }
 
@@ -102,15 +137,39 @@ final class WorkoutPreset {
     @MainActor
     func apply(to model: BoxingTimerModel) {
         model.currentPresetName = name
-        model.roundDuration = roundDuration
-        model.restDuration = restDuration
-        model.numberOfRounds = numberOfRounds
-        model.roundWarningTime = roundWarningTime
+        model.updateRoundConfigurations(roundConfigurations)
         model.restWarningTime = restWarningTime
         model.roundStartSound = roundStartSound
         model.restStartSound = restStartSound
         model.roundWarningSound = roundWarningSound
         model.restWarningSound = restWarningSound
         model.workoutCompleteSound = workoutCompleteSound
+    }
+
+    private static func encodeRoundConfigurations(_ configurations: [RoundConfiguration]) -> Data {
+        let encoder = JSONEncoder()
+        return (try? encoder.encode(configurations)) ?? Data()
+    }
+
+    private static func decodeRoundConfigurations(_ data: Data) -> [RoundConfiguration]? {
+        guard !data.isEmpty else { return nil }
+        let decoder = JSONDecoder()
+        return try? decoder.decode([RoundConfiguration].self, from: data)
+    }
+
+    private static func fallbackRoundConfigurations(
+        numberOfRounds: Int,
+        roundDuration: TimeInterval,
+        restDuration: TimeInterval,
+        roundWarningTime: TimeInterval
+    ) -> [RoundConfiguration] {
+        let count = max(1, numberOfRounds)
+        return (0..<count).map { _ in
+            RoundConfiguration(
+                roundDuration: roundDuration,
+                restDuration: restDuration,
+                roundWarningTime: roundWarningTime
+            )
+        }
     }
 }

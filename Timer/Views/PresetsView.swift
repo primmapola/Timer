@@ -93,8 +93,18 @@ struct PresetRow: View {
     let preset: WorkoutPreset
 
     private var totalDuration: TimeInterval {
-        Double(preset.numberOfRounds) * preset.roundDuration +
-        Double(max(0, preset.numberOfRounds - 1)) * preset.restDuration
+        totalWorkoutDuration()
+    }
+
+    private var roundConfigurations: [RoundConfiguration] {
+        preset.roundConfigurations
+    }
+
+    private var isUniformConfiguration: Bool {
+        guard let first = roundConfigurations.first else { return true }
+        return roundConfigurations.allSatisfy {
+            $0.roundDuration == first.roundDuration && $0.restDuration == first.restDuration
+        }
     }
 
     private var gradientColors: [Color] {
@@ -120,7 +130,7 @@ struct PresetRow: View {
 
                 // Бейдж с количеством раундов
                 VStack(spacing: 2) {
-                    Text("\(preset.numberOfRounds)")
+                    Text("\(roundConfigurations.count)")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
@@ -154,7 +164,7 @@ struct PresetRow: View {
                     Text("Раунд")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text(formatTime(preset.roundDuration))
+                    Text(roundDurationText)
                         .font(.headline)
                         .foregroundStyle(.primary)
                 }
@@ -171,7 +181,7 @@ struct PresetRow: View {
                     Text("Отдых")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text(formatTime(preset.restDuration))
+                    Text(restDurationText)
                         .font(.headline)
                         .foregroundStyle(.primary)
                 }
@@ -204,6 +214,34 @@ struct PresetRow: View {
             return "\(minutes) мин \(secs) сек"
         }
         return "\(secs) сек"
+    }
+
+    private var roundDurationText: String {
+        guard let first = roundConfigurations.first else { return "—" }
+        if isUniformConfiguration {
+            return formatTime(first.roundDuration)
+        }
+        return "Разные"
+    }
+
+    private var restDurationText: String {
+        guard let first = roundConfigurations.first else { return "—" }
+        if isUniformConfiguration {
+            return formatTime(first.restDuration)
+        }
+        return "Разные"
+    }
+
+    private func totalWorkoutDuration() -> TimeInterval {
+        guard !roundConfigurations.isEmpty else { return 0 }
+        var total: TimeInterval = 0
+        for (index, configuration) in roundConfigurations.enumerated() {
+            total += configuration.roundDuration
+            if index < roundConfigurations.count - 1 {
+                total += configuration.restDuration
+            }
+        }
+        return total
     }
 
     private func twoDigitString(_ value: Int) -> String {

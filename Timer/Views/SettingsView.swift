@@ -10,10 +10,7 @@ import SwiftData
 import AVFoundation
 
 enum SettingRow: Hashable {
-    case round
-    case rest
     case numberOfRounds
-    case roundWarning
     case restWarning
     case roundStartSound
     case restStartSound
@@ -27,28 +24,18 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var model: BoxingTimerModel
 
-    @State private var roundMinutes: Int
-    @State private var roundSeconds: Int
-    @State private var restMinutes: Int
-    @State private var restSeconds: Int
-    @State private var roundWarningSeconds: Int
+    @State private var draftRoundConfigurations: [RoundConfiguration]
+    @State private var draftNumberOfRounds: Int
     @State private var restWarningSeconds: Int
     @State private var expandedRow: SettingRow?
+    @State private var expandedRoundIndex: Int?
     @State private var showingSavePreset = false
     @State private var presetName = ""
 
     init(model: BoxingTimerModel) {
         self.model = model
-
-        let roundTotal = Int(model.roundDuration)
-        _roundMinutes = State(initialValue: roundTotal / 60)
-        _roundSeconds = State(initialValue: roundTotal % 60)
-
-        let restTotal = Int(model.restDuration)
-        _restMinutes = State(initialValue: restTotal / 60)
-        _restSeconds = State(initialValue: restTotal % 60)
-
-        _roundWarningSeconds = State(initialValue: Int(model.roundWarningTime))
+        _draftRoundConfigurations = State(initialValue: model.roundConfigurations)
+        _draftNumberOfRounds = State(initialValue: model.numberOfRounds)
         _restWarningSeconds = State(initialValue: Int(model.restWarningTime))
     }
 
@@ -72,13 +59,13 @@ struct SettingsView: View {
 
                         // Визуальный timeline
                         HStack(spacing: 4) {
-                            ForEach(0..<model.numberOfRounds, id: \.self) { index in
+                            ForEach(0..<draftNumberOfRounds, id: \.self) { index in
                                 VStack(spacing: 2) {
                                     Rectangle()
                                         .fill(.red.opacity(0.7))
                                         .frame(height: 20)
 
-                                    if index < model.numberOfRounds - 1 {
+                                    if index < draftNumberOfRounds - 1 {
                                         Rectangle()
                                             .fill(.green.opacity(0.7))
                                             .frame(height: 10)
@@ -88,7 +75,7 @@ struct SettingsView: View {
                         }
                         .clipShape(RoundedRectangle(cornerRadius: 4))
 
-                        Text("\(model.numberOfRounds) × (\(formatTime(minutes: roundMinutes, seconds: roundSeconds)) раунд + \(formatTime(minutes: restMinutes, seconds: restSeconds)) отдых)")
+                        Text(roundSummaryText)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -105,10 +92,7 @@ struct SettingsView: View {
                                 icon: "bolt.fill",
                                 color: .orange
                             ) {
-                                roundMinutes = 3
-                                roundSeconds = 0
-                                restMinutes = 1
-                                restSeconds = 0
+                                applyQuickPreset(roundMinutes: 3, restMinutes: 1)
                             }
 
                             QuickPresetButton(
@@ -117,10 +101,7 @@ struct SettingsView: View {
                                 icon: "flame.fill",
                                 color: .red
                             ) {
-                                roundMinutes = 5
-                                roundSeconds = 0
-                                restMinutes = 1
-                                restSeconds = 0
+                                applyQuickPreset(roundMinutes: 5, restMinutes: 1)
                             }
 
                             QuickPresetButton(
@@ -129,10 +110,7 @@ struct SettingsView: View {
                                 icon: "figure.boxing",
                                 color: .purple
                             ) {
-                                roundMinutes = 12
-                                roundSeconds = 0
-                                restMinutes = 3
-                                restSeconds = 0
+                                applyQuickPreset(roundMinutes: 12, restMinutes: 3)
                             }
                         }
                         .padding(.horizontal, 4)
@@ -143,82 +121,6 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    // Раунд
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            expandedRow = expandedRow == .round ? nil : .round
-                        }
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "timer")
-                                .foregroundStyle(.red)
-                                .font(.title3)
-                                .frame(width: 28)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Раунд")
-                                    .foregroundStyle(.primary)
-                                    .font(.body.weight(.medium))
-                                Text("Время активной работы")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            Text(formatTime(minutes: roundMinutes, seconds: roundSeconds))
-                                .foregroundStyle(.red)
-                                .font(.body.bold().monospacedDigit())
-                        }
-                    }
-
-                    if expandedRow == .round {
-                        TimePickerRow(
-                            minutes: $roundMinutes,
-                            seconds: $roundSeconds
-                        )
-                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    }
-
-                    // Пауза
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            expandedRow = expandedRow == .rest ? nil : .rest
-                        }
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "pause.circle.fill")
-                                .foregroundStyle(.green)
-                                .font(.title3)
-                                .frame(width: 28)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Пауза")
-                                    .foregroundStyle(.primary)
-                                    .font(.body.weight(.medium))
-                                Text("Отдых между раундами")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            Text(formatTime(minutes: restMinutes, seconds: restSeconds))
-                                .foregroundStyle(.green)
-                                .font(.body.bold().monospacedDigit())
-                        }
-                    }
-
-                    if expandedRow == .rest {
-                        TimePickerRow(
-                            minutes: $restMinutes,
-                            seconds: $restSeconds
-                        )
-                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    }
-
                     // Количество раундов
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -242,14 +144,14 @@ struct SettingsView: View {
 
                             Spacer()
 
-                            Text("\(model.numberOfRounds)")
+                            Text("\(draftNumberOfRounds)")
                                 .foregroundStyle(.blue)
                                 .font(.body.bold().monospacedDigit())
                         }
                     }
 
                     if expandedRow == .numberOfRounds {
-                        Picker("Количество раундов", selection: $model.numberOfRounds) {
+                        Picker("Количество раундов", selection: $draftNumberOfRounds) {
                             ForEach(1...20, id: \.self) { round in
                                 Text("\(round)")
                                     .tag(round)
@@ -261,59 +163,19 @@ struct SettingsView: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.95)))
                     }
 
+                    ForEach($draftRoundConfigurations) { configuration in
+                        RoundConfigurationRowView(
+                            roundNumber: roundNumber(for: configuration.wrappedValue),
+                            configuration: configuration,
+                            expandedRoundIndex: $expandedRoundIndex
+                        )
+                    }
+
                 } header: {
-                    Text("Основные параметры")
+                    Text("Раунды")
                 }
 
                 Section {
-                    // Предупреждение о конце раунда
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            expandedRow = expandedRow == .roundWarning ? nil : .roundWarning
-                        }
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "bell.fill")
-                                .foregroundStyle(.orange)
-                                .font(.title3)
-                                .frame(width: 28)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Сигнал раунда")
-                                    .foregroundStyle(.primary)
-                                    .font(.body.weight(.medium))
-                                Text("За \(roundWarningSeconds) сек до конца")
-                                    .font(.caption)
-                                    .foregroundStyle(isRoundWarningValid ? Color.secondary : Color.red)
-                            }
-
-                            Spacer()
-
-                            Text("\(roundWarningSeconds) сек")
-                                .foregroundStyle(isRoundWarningValid ? .orange : .red)
-                                .font(.body.bold().monospacedDigit())
-
-                            if !isRoundWarningValid {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(.red)
-                                    .font(.caption)
-                            }
-                        }
-                    }
-
-                    if expandedRow == .roundWarning {
-                        Picker("Секунды", selection: $roundWarningSeconds) {
-                            ForEach([3, 5, 10, 15, 20, 30], id: \.self) { sec in
-                                Text("\(sec) сек")
-                                    .tag(sec)
-                            }
-                        }
-                        .pickerStyle(.wheel)
-                        .frame(height: 150)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    }
-
                     // Предупреждение о конце отдыха
                     Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -550,30 +412,54 @@ struct SettingsView: View {
                 Text("Введите название для сохранения параметров")
             }
         }
+        .onChange(of: draftNumberOfRounds) { _, newValue in
+            draftRoundConfigurations = normalizedRoundConfigurations(for: newValue)
+            if let expandedIndex = expandedRoundIndex, expandedIndex > newValue {
+                expandedRoundIndex = nil
+            }
+        }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }
 
     private var isValid: Bool {
-        let roundTotal = roundMinutes * 60 + roundSeconds
-        let restTotal = restMinutes * 60 + restSeconds
-        return roundTotal > 0 && restTotal > 0 && isRoundWarningValid && isRestWarningValid
+        guard !draftRoundConfigurations.isEmpty else { return false }
+        let hasRoundDuration = draftRoundConfigurations.allSatisfy { $0.roundDuration > 0 }
+        let hasRestDuration = draftRoundConfigurations.allSatisfy { $0.restDuration > 0 }
+        return hasRoundDuration && hasRestDuration && isRoundWarningValid && isRestWarningValid
     }
 
     private var isRoundWarningValid: Bool {
-        let roundTotal = roundMinutes * 60 + roundSeconds
-        return roundWarningSeconds < roundTotal
+        draftRoundConfigurations.allSatisfy { $0.roundWarningTime < $0.roundDuration }
     }
 
     private var isRestWarningValid: Bool {
-        let restTotal = restMinutes * 60 + restSeconds
-        return restWarningSeconds < restTotal
+        guard draftNumberOfRounds > 1 else { return true }
+        let restDurations = draftRoundConfigurations.dropLast().map(\.restDuration)
+        guard let minimumRest = restDurations.min() else { return true }
+        return TimeInterval(restWarningSeconds) < minimumRest
+    }
+
+    private var roundSummaryText: String {
+        guard let first = draftRoundConfigurations.first else {
+            return "Нет раундов"
+        }
+
+        let isUniform = draftRoundConfigurations.allSatisfy {
+            $0.roundDuration == first.roundDuration &&
+            $0.restDuration == first.restDuration &&
+            $0.roundWarningTime == first.roundWarningTime
+        }
+
+        if isUniform {
+            return "\(draftNumberOfRounds) × (\(formatTime(first.roundDuration)) раунд + \(formatTime(first.restDuration)) отдых)"
+        }
+
+        return "Индивидуальные настройки для каждого раунда"
     }
 
     private func formatTotalWorkoutTime() -> String {
-        let roundTotal = roundMinutes * 60 + roundSeconds
-        let restTotal = restMinutes * 60 + restSeconds
-        let totalSeconds = (roundTotal + restTotal) * model.numberOfRounds - restTotal
+        let totalSeconds = totalWorkoutSeconds()
 
         let hours = totalSeconds / 3600
         let minutes = (totalSeconds % 3600) / 60
@@ -585,7 +471,10 @@ struct SettingsView: View {
         return "\(minutes):\(twoDigitString(seconds))"
     }
 
-    private func formatTime(minutes: Int, seconds: Int) -> String {
+    private func formatTime(_ duration: TimeInterval) -> String {
+        let totalSeconds = max(0, Int(duration))
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
         return "\(minutes):\(twoDigitString(seconds))"
     }
 
@@ -594,9 +483,8 @@ struct SettingsView: View {
     }
 
     private func saveSettings() {
-        model.roundDuration = TimeInterval(roundMinutes * 60 + roundSeconds)
-        model.restDuration = TimeInterval(restMinutes * 60 + restSeconds)
-        model.roundWarningTime = TimeInterval(roundWarningSeconds)
+        let normalizedConfigurations = normalizedRoundConfigurations(for: draftNumberOfRounds)
+        model.updateRoundConfigurations(normalizedConfigurations)
         model.restWarningTime = TimeInterval(restWarningSeconds)
     }
 
@@ -616,6 +504,55 @@ struct SettingsView: View {
         } catch {
             print("Failed to save preset: \(error)")
         }
+    }
+
+    private func normalizedRoundConfigurations(for count: Int) -> [RoundConfiguration] {
+        let clampedCount = max(1, count)
+        if clampedCount == draftRoundConfigurations.count {
+            return draftRoundConfigurations
+        }
+
+        if clampedCount < draftRoundConfigurations.count {
+            return Array(draftRoundConfigurations.prefix(clampedCount))
+        }
+
+        let template = draftRoundConfigurations.last ?? .defaultConfiguration
+        let additions = (0..<(clampedCount - draftRoundConfigurations.count)).map { _ in
+            RoundConfiguration(
+                roundDuration: template.roundDuration,
+                restDuration: template.restDuration,
+                roundWarningTime: template.roundWarningTime
+            )
+        }
+        return draftRoundConfigurations + additions
+    }
+
+    private func roundNumber(for configuration: RoundConfiguration) -> Int {
+        draftRoundConfigurations.firstIndex { $0.id == configuration.id }
+            .map { $0 + 1 } ?? 1
+    }
+
+    private func applyQuickPreset(roundMinutes: Int, restMinutes: Int) {
+        let roundDuration = TimeInterval(roundMinutes * 60)
+        let restDuration = TimeInterval(restMinutes * 60)
+        draftRoundConfigurations = draftRoundConfigurations.map { configuration in
+            var updated = configuration
+            updated.roundDuration = roundDuration
+            updated.restDuration = restDuration
+            return updated
+        }
+    }
+
+    private func totalWorkoutSeconds() -> Int {
+        guard !draftRoundConfigurations.isEmpty else { return 0 }
+        var total = 0
+        for (index, configuration) in draftRoundConfigurations.enumerated() {
+            total += Int(configuration.roundDuration)
+            if index < draftRoundConfigurations.count - 1 {
+                total += Int(configuration.restDuration)
+            }
+        }
+        return total
     }
 }
 

@@ -36,11 +36,22 @@ final class BoxingTimerModel {
 
     // MARK: - Settings
     var currentPresetName: String = "Таймер"
-    var roundDuration: TimeInterval = 180
-    var restDuration: TimeInterval = 60
-    var numberOfRounds: Int = 3
-    var roundWarningTime: TimeInterval = 10
+    var numberOfRounds: Int = 3 {
+        didSet {
+            roundConfigurations = resizedRoundConfigurations(for: numberOfRounds)
+        }
+    }
     var restWarningTime: TimeInterval = 10
+    var roundConfigurations: [RoundConfiguration] = RoundConfiguration.defaults(count: 3) {
+        didSet {
+            if roundConfigurations.isEmpty {
+                roundConfigurations = RoundConfiguration.defaults(count: numberOfRounds)
+            }
+            if roundConfigurations.count != numberOfRounds {
+                numberOfRounds = roundConfigurations.count
+            }
+        }
+    }
 
     // Sound settings
     var roundStartSound: SystemSound = .bell
@@ -146,9 +157,9 @@ final class BoxingTimerModel {
     var totalPhaseDuration: TimeInterval {
         switch timerState {
         case .running(.round), .paused(.round):
-            return roundDuration
+            return configuration(forRound: currentRound).roundDuration
         case .running(.rest), .paused(.rest):
-            return restDuration
+            return configuration(forRound: currentRound).restDuration
         case .idle, .finished:
             return 0
         }
@@ -167,7 +178,7 @@ final class BoxingTimerModel {
         guard timeRemaining > 0 else { return false }
         switch timerState {
         case .running(.round), .paused(.round):
-            return timeRemaining <= roundWarningTime
+            return timeRemaining <= configuration(forRound: currentRound).roundWarningTime
         case .running(.rest), .paused(.rest):
             return timeRemaining <= restWarningTime
         case .idle, .finished:
@@ -211,7 +222,7 @@ final class BoxingTimerModel {
         case .idle, .finished:
             hasStarted = true
             timerState = .running(phase: .round(number: 1))
-            timeRemaining = roundDuration
+            timeRemaining = configuration(forRound: 1).roundDuration
             playSound(roundStartSound)
             playHaptic(.success)
             startLiveActivity()
@@ -283,7 +294,7 @@ final class BoxingTimerModel {
             if case .running(let phase) = timerState {
                 switch phase {
                 case .round:
-                    if timeRemaining == roundWarningTime {
+                    if timeRemaining == configuration(forRound: currentRound).roundWarningTime {
                         playSound(roundWarningSound)
                         playHaptic(.warning)
                     }
@@ -307,7 +318,7 @@ final class BoxingTimerModel {
             if number < numberOfRounds {
                 // Переход к отдыху
                 timerState = .running(phase: .rest(afterRound: number))
-                timeRemaining = restDuration
+                timeRemaining = configuration(forRound: number).restDuration
                 updateLiveActivity()
                 playSound(restStartSound)
                 playHaptic(.light)
@@ -325,7 +336,7 @@ final class BoxingTimerModel {
             // Переход к следующему раунду
             let nextRound = afterRound + 1
             timerState = .running(phase: .round(number: nextRound))
-            timeRemaining = roundDuration
+            timeRemaining = configuration(forRound: nextRound).roundDuration
             updateLiveActivity()
             playSound(roundStartSound)
             playHaptic(.light)
@@ -358,8 +369,8 @@ final class BoxingTimerModel {
         let attributes = BoxingTimerActivityAttributes(
             workoutName: currentPresetName,
             numberOfRounds: numberOfRounds,
-            roundDuration: roundDuration,
-            restDuration: restDuration
+            roundDuration: configuration(forRound: 1).roundDuration,
+            restDuration: configuration(forRound: 1).restDuration
         )
 
         let contentState = BoxingTimerActivityAttributes.ContentState(
@@ -384,10 +395,10 @@ final class BoxingTimerModel {
 
         let phase: BoxingTimerActivityAttributes.ContentState.Phase
         switch timerState {
-        case .running(.round), .paused(.round):
-            phase = .round
-        case .running(.rest), .paused(.rest):
-            phase = .rest
+            case .running(.round), .paused(.round):
+                phase = .round
+            case .running(.rest), .paused(.rest):
+                phase = .rest
         case .finished:
             phase = .finished
         case .idle:
@@ -420,6 +431,43 @@ final class BoxingTimerModel {
             await activity.end(nil, dismissalPolicy: .immediate)
             self.activity = nil
         }
+    }
+
+    func updateRoundConfigurations(_ configurations: [RoundConfiguration]) {
+        roundConfigurations = configurations
+        numberOfRounds = configurations.count
+    }
+
+    private func resizedRoundConfigurations(for count: Int) -> [RoundConfiguration] {
+        guard count > 0 else { return [] }
+
+        if count == roundConfigurations.count {
+            return roundConfigurations
+        }
+
+        if count < roundConfigurations.count {
+            return Array(roundConfigurations.prefix(count))
+        }
+
+        let template = roundConfigurations.last ?? .defaultConfiguration
+        let missingCount = count - roundConfigurations.count
+        let additions = (0..<missingCount).map { _ in
+            RoundConfiguration(
+                roundDuration: template.roundDuration,
+                restDuration: template.restDuration,
+                roundWarningTime: template.roundWarningTime
+            )
+        }
+        return roundConfigurations + additions
+    }
+
+    private func configuration(forRound round: Int) -> RoundConfiguration {
+        guard !roundConfigurations.isEmpty else {
+            return .defaultConfiguration
+        }
+
+        let index = min(max(round - 1, 0), roundConfigurations.count - 1)
+        return roundConfigurations[index]
     }
 }
 
